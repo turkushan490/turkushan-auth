@@ -61,8 +61,12 @@ func Load() (*Config, error) {
 }
 
 // DefaultCookieDomain shares the cookie with the portal's sibling subdomains:
-// auth.example.com → .example.com. A bare domain is used as is.
+// auth.example.com → .example.com. A bare domain is used as is. For localhost
+// or an IP it returns "" (a host-only cookie), since browsers reject those as a domain.
 func DefaultCookieDomain(host string) string {
+	if _, err := netip.ParseAddr(host); err == nil || !strings.Contains(host, ".") {
+		return ""
+	}
 	labels := strings.Split(host, ".")
 	if len(labels) >= 3 {
 		return "." + strings.Join(labels[1:], ".")

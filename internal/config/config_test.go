@@ -32,6 +32,8 @@ func TestDefaultCookieDomain(t *testing.T) {
 		"auth.turkushan.com":     ".turkushan.com",
 		"login.home.example.com": ".home.example.com",
 		"example.com":            ".example.com",
+		"localhost":              "",
+		"192.168.0.6":            "",
 	} {
 		if got := DefaultCookieDomain(host); got != want {
 			t.Errorf("%s: got %s, want %s", host, got, want)

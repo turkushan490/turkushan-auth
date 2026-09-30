@@ -3,3 +3,5 @@ web/dist/
 data/
 *.db
 *.db-*
+.claude/
+web/.claude/

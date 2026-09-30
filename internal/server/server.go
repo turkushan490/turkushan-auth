@@ -16,6 +16,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 
 	"github.com/turkushan490/turkushan-auth/internal/config"
+	"github.com/turkushan490/turkushan-auth/internal/ratelimit"
 	"github.com/turkushan490/turkushan-auth/internal/store"
 )
 
@@ -25,6 +26,13 @@ type Server struct {
 	log   *slog.Logger
 	dist  fs.FS
 	index []byte
+
+	appOrigin    string // scheme://host of APP_URL, for the CSRF origin check
+	redirectBase string // rd must point at this domain or a subdomain of it
+
+	loginPerIP   *ratelimit.Limiter
+	loginPerUser *ratelimit.Limiter
+	registerPerIP *ratelimit.Limiter
 }
 
 // New returns the portal's HTTP handler. dist is the built web app.
@@ -33,16 +41,40 @@ func New(cfg *config.Config, st *store.Store, log *slog.Logger, dist fs.FS) (htt
 	if err != nil {
 		return nil, fmt.Errorf("web build is missing index.html: %w", err)
 	}
-	s := &Server{cfg: cfg, store: st, log: log, dist: dist, index: index}
+	base := strings.TrimPrefix(cfg.CookieDomain, ".")
+	if base == "" {
+		base = cfg.AppURL.Hostname()
+	}
+	s := &Server{
+		cfg: cfg, store: st, log: log, dist: dist, index: index,
+		appOrigin:     cfg.AppURL.Scheme + "://" + cfg.AppURL.Host,
+		redirectBase:  base,
+		loginPerIP:    ratelimit.New(20, time.Minute),
+		loginPerUser:  ratelimit.New(10, time.Minute),
+		registerPerIP: ratelimit.New(5, time.Hour),
+	}
 
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
 	r.Use(securityHeaders)
 
 	r.Get("/healthz", s.healthz)
+	r.Route("/api", func(r chi.Router) {
+		r.Use(s.csrfProtect)
+		r.Get("/session", s.handleSession)
+		r.Post("/login", s.handleLogin)
+		r.Post("/register", s.handleRegister)
+		r.Post("/logout", s.handleLogout)
+		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+			writeError(w, http.StatusNotFound, "Not found.")
+		})
+		r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
+			writeError(w, http.StatusMethodNotAllowed, "Method not allowed.")
+		})
+	})
 	r.NotFound(s.spa)
 	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		writeError(w, http.StatusMethodNotAllowed, "Method not allowed.")
 	})
 	return r, nil
 }
@@ -63,11 +95,11 @@ func (s *Server) healthz(w http.ResponseWriter, r *http.Request) {
 // frontend router can handle /login, /admin, etc.
 func (s *Server) spa(w http.ResponseWriter, r *http.Request) {
 	if strings.HasPrefix(r.URL.Path, "/api/") {
-		writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
+		writeError(w, http.StatusNotFound, "Not found.")
 		return
 	}
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
-		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		writeError(w, http.StatusMethodNotAllowed, "Method not allowed.")
 		return
 	}
 
@@ -103,6 +135,31 @@ func securityHeaders(next http.Handler) http.Handler {
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(v)
+}
+
+// writeError sends {"error": msg}; msg is shown to the user as is.
+func writeError(w http.ResponseWriter, status int, msg string) {
+	writeJSON(w, status, map[string]string{"error": msg})
+}
+
+func (s *Server) serverError(w http.ResponseWriter, r *http.Request, err error) {
+	s.log.Error("request failed", "path", r.URL.Path, "err", err)
+	writeError(w, http.StatusInternalServerError, "Something went wrong. Try again.")
+}
+
+// decodeJSON reads a small JSON body into v, answering the error itself.
+func decodeJSON(w http.ResponseWriter, r *http.Request, v any) bool {
+	if !strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
+		writeError(w, http.StatusUnsupportedMediaType, "Expected JSON.")
+		return false
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 16<<10)
+	if err := json.NewDecoder(r.Body).Decode(v); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid request.")
+		return false
+	}
+	return true
 }

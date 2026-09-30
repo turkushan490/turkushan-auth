@@ -71,6 +71,8 @@ func run(log *slog.Logger) error {
 		log.Info("admin account", "result", string(res))
 	}
 
+	go cleanupSessions(ctx, st, log)
+
 	dist, err := web.Dist()
 	if err != nil {
 		return err
@@ -107,6 +109,24 @@ func run(log *slog.Logger) error {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	return srv.Shutdown(shutdownCtx)
+}
+
+func cleanupSessions(ctx context.Context, st *store.Store, log *slog.Logger) {
+	t := time.NewTicker(time.Hour)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			n, err := st.DeleteExpiredSessions(ctx)
+			if err != nil {
+				log.Error("session cleanup", "err", err)
+			} else if n > 0 {
+				log.Info("expired sessions removed", "count", n)
+			}
+		}
+	}
 }
 
 func healthcheck() int {
