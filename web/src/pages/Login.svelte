@@ -41,6 +41,9 @@
 
     <Field label="Username" name="username" autocomplete="username" required bind:value={username} />
     <Field label="Password" name="password" type="password" autocomplete="current-password" required bind:value={password} />
+    <div class="-mt-1 text-right">
+      <a href="/forgot" onclick={link} class="text-xs font-medium text-zinc-400 hover:text-zinc-200">Forgot password?</a>
+    </div>
 
     <div class="pt-2">
       <SubmitButton {busy}>Sign in</SubmitButton>

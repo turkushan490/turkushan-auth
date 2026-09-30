@@ -30,9 +30,13 @@ type Server struct {
 	appOrigin    string // scheme://host of APP_URL, for the CSRF origin check
 	redirectBase string // rd must point at this domain or a subdomain of it
 
-	loginPerIP   *ratelimit.Limiter
-	loginPerUser *ratelimit.Limiter
-	registerPerIP *ratelimit.Limiter
+	loginPerIP     *ratelimit.Limiter
+	loginPerUser   *ratelimit.Limiter
+	registerPerIP  *ratelimit.Limiter
+	mailPerUser    *ratelimit.Limiter // verification mails / email changes
+	forgotPerIP    *ratelimit.Limiter
+	forgotPerLogin *ratelimit.Limiter
+	tokenPerIP     *ratelimit.Limiter // attempts with links from mails
 }
 
 // New returns the portal's HTTP handler. dist is the built web app.
@@ -51,7 +55,11 @@ func New(cfg *config.Config, st *store.Store, log *slog.Logger, dist fs.FS) (htt
 		redirectBase:  base,
 		loginPerIP:    ratelimit.New(20, time.Minute),
 		loginPerUser:  ratelimit.New(10, time.Minute),
-		registerPerIP: ratelimit.New(5, time.Hour),
+		registerPerIP:  ratelimit.New(5, time.Hour),
+		mailPerUser:    ratelimit.New(5, time.Hour),
+		forgotPerIP:    ratelimit.New(5, time.Hour),
+		forgotPerLogin: ratelimit.New(3, time.Hour),
+		tokenPerIP:     ratelimit.New(30, time.Hour),
 	}
 
 	r := chi.NewRouter()
@@ -70,6 +78,12 @@ func New(cfg *config.Config, st *store.Store, log *slog.Logger, dist fs.FS) (htt
 			r.Post("/register", s.handleRegister)
 			r.Post("/logout", s.handleLogout)
 			r.Get("/access", s.handleAccess)
+			r.Post("/account/email", s.handleSetEmail)
+			r.Post("/account/email/resend", s.handleResendVerification)
+			r.Post("/account/password", s.handleChangePassword)
+			r.Post("/verify-email", s.handleVerifyEmail)
+			r.Post("/password/forgot", s.handleForgotPassword)
+			r.Post("/password/reset", s.handleResetPassword)
 
 			r.Route("/admin", func(r chi.Router) {
 				r.Use(s.requireAdmin)
@@ -84,6 +98,7 @@ func New(cfg *config.Config, st *store.Store, log *slog.Logger, dist fs.FS) (htt
 				r.Delete("/users/{id}", s.handleDeleteUser)
 				r.Put("/settings", s.handleUpdateSettings)
 				r.Post("/settings/test-discord", s.handleTestDiscord)
+				r.Post("/settings/test-mail", s.handleTestMail)
 			})
 		})
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {

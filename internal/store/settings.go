@@ -10,6 +10,11 @@ import (
 const (
 	SettingDiscordWebhook = "discord_webhook"
 	SettingPortalURL      = "portal_internal_url" // how NPM reaches the portal, for the generated snippets
+	SettingSMTPHost       = "smtp_host"
+	SettingSMTPPort       = "smtp_port"
+	SettingSMTPUsername   = "smtp_username"
+	SettingSMTPPassword   = "smtp_password" // stored as-is: the portal needs it to log in to the mail server
+	SettingSMTPFrom       = "smtp_from"
 )
 
 // Setting returns a stored value, or "" when unset.

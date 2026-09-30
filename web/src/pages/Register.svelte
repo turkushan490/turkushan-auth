@@ -3,7 +3,9 @@
   import Field from '../components/Field.svelte';
   import SubmitButton from '../components/SubmitButton.svelte';
   import Alert from '../components/Alert.svelte';
+  import PasswordRules from '../components/PasswordRules.svelte';
   import { api } from '../lib/api.js';
+  import { passwordRules } from '../lib/password.js';
   import { link, currentRD, withRD } from '../lib/state.svelte.js';
 
   const rd = currentRD();
@@ -15,13 +17,7 @@
   let error = $state('');
   let busy = $state(false);
 
-  // Same rules as the server (internal/auth/validate.go).
-  const rules = $derived([
-    { ok: [...password].length >= 6, text: 'At least 6 characters' },
-    { ok: /\p{Lu}/u.test(password), text: '1 capital letter' },
-    { ok: /[^\p{L}\p{N}\s]/u.test(password), text: '1 symbol, like ! @ # ?' },
-  ]);
-  const passwordOk = $derived(rules.every((r) => r.ok));
+  const passwordOk = $derived(passwordRules(password).every((r) => r.ok));
   const mismatch = $derived(confirm.length > 0 && confirm !== password);
 
   async function submit(e) {
@@ -67,21 +63,10 @@
       autocomplete="email"
       optional
       bind:value={email}
-      hint="Needed for some sites and to reset your password yourself."
+      hint="Needed for some sites and to reset your password yourself. You'll get a mail to confirm it."
     />
     <Field label="Password" name="password" type="password" autocomplete="new-password" required bind:value={password}>
-      <ul class="mt-2 space-y-1 text-xs">
-        {#each rules as rule}
-          <li class="flex items-center gap-2 {rule.ok ? 'text-emerald-400' : 'text-zinc-500'}">
-            {#if rule.ok}
-              <svg viewBox="0 0 24 24" class="size-3.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7" /></svg>
-            {:else}
-              <svg viewBox="0 0 24 24" class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="8" /></svg>
-            {/if}
-            {rule.text}
-          </li>
-        {/each}
-      </ul>
+      <PasswordRules {password} />
     </Field>
     <Field label="Confirm password" name="confirm" type="password" autocomplete="new-password" required bind:value={confirm}>
       {#if mismatch}

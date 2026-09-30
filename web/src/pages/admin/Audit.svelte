@@ -17,6 +17,8 @@
     'user.delete': 'User deleted',
     'settings.portal_url': 'Portal address changed',
     'settings.discord_webhook': 'Discord webhook changed',
+    'settings.mail': 'Email settings changed',
+    'settings.test_mail': 'Test mail sent',
   };
   const tone = (action) =>
     action.endsWith('delete') || action.endsWith('block') || action.endsWith('denied')

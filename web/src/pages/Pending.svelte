@@ -80,7 +80,7 @@
             {#if result.is_admin}Add it in the admin panel under Sites.{:else}Ask the admin to add it.{/if}
           {:else if result.status === 'email_required'}
             <span class="font-semibold text-zinc-100">{siteName}</span> is only available for accounts with a verified email address.
-            Email verification is coming soon.
+            Add or verify your email on your account page, then open the site again.
           {:else}
             {result.error}
           {/if}
@@ -96,6 +96,14 @@
           <button type="button" onclick={check} disabled={checking}
             class="flex w-full items-center justify-center rounded-lg bg-zinc-800 px-4 py-2.5 text-sm font-medium text-zinc-100 transition hover:bg-zinc-700 disabled:opacity-60">
             {checking ? 'Checking…' : 'Check again'}
+          </button>
+        {:else if result.status === 'email_required'}
+          <a href="/" onclick={link} class="flex w-full items-center justify-center rounded-lg bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-400">
+            Add or verify email
+          </a>
+          <button type="button" onclick={check} disabled={checking}
+            class="flex w-full items-center justify-center rounded-lg bg-zinc-800 px-4 py-2.5 text-sm font-medium text-zinc-100 transition hover:bg-zinc-700 disabled:opacity-60">
+            {checking ? 'Checking…' : 'I verified it, check again'}
           </button>
         {:else if result.status === 'unknown_site' && result.is_admin}
           <a href="/admin/sites" onclick={link} class="flex w-full items-center justify-center rounded-lg bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-400">

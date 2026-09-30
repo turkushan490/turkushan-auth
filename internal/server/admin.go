@@ -96,6 +96,11 @@ func (s *Server) handleAdminData(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
+	mc, err := s.mailConfig(ctx)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
 
 	withSnippets := make([]siteWithSnippet, len(sites))
 	for i, st := range sites {
@@ -112,6 +117,14 @@ func (s *Server) handleAdminData(w http.ResponseWriter, r *http.Request) {
 			"discord_webhook_set": webhook != "",
 			"base_domain":         s.redirectBase,
 			"app_url":             s.cfg.AppURL.String(),
+			"smtp": map[string]any{ // the password itself is never sent back
+				"host":         mc.Host,
+				"port":         mc.Port,
+				"username":     mc.Username,
+				"from":         mc.From,
+				"password_set": mc.Password != "",
+				"ready":        mc.Ready(),
+			},
 		},
 	})
 }
@@ -438,6 +451,12 @@ func (s *Server) handleDeleteUser(w http.ResponseWriter, r *http.Request) {
 type settingsInput struct {
 	PortalURL      *string `json:"portal_url"`
 	DiscordWebhook *string `json:"discord_webhook"` // "" removes it
+	mailSettingsInput
+}
+
+func (in settingsInput) hasMail() bool {
+	m := in.mailSettingsInput
+	return m.Host != nil || m.Port != nil || m.Username != nil || m.Password != nil || m.From != nil
 }
 
 func (s *Server) handleUpdateSettings(w http.ResponseWriter, r *http.Request) {
@@ -473,6 +492,18 @@ func (s *Server) handleUpdateSettings(w http.ResponseWriter, r *http.Request) {
 			detail = "removed"
 		}
 		s.audit(r, "settings.discord_webhook", "", detail)
+	}
+	if in.hasMail() {
+		msg, err := s.applyMailSettings(ctx, in.mailSettingsInput)
+		if err != nil {
+			s.serverError(w, r, err)
+			return
+		}
+		if msg != "" {
+			writeError(w, http.StatusBadRequest, msg)
+			return
+		}
+		s.audit(r, "settings.mail", "", "")
 	}
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }

@@ -245,7 +245,8 @@ func TestRegisterValidation(t *testing.T) {
 		{map[string]string{"username": "erin", "password": "Secret!1", "email": "nope"}, http.StatusBadRequest},
 		{map[string]string{"username": "erin", "password": "Secret!1", "email": "Erin@Example.com"}, http.StatusOK},
 		{map[string]string{"username": "Erin", "password": "Secret!1"}, http.StatusConflict},
-		{map[string]string{"username": "frank", "password": "Secret!1", "email": "erin@example.com"}, http.StatusConflict},
+		// erin hasn't verified the address yet, so it doesn't block someone else.
+		{map[string]string{"username": "frank", "password": "Secret!1", "email": "erin@example.com"}, http.StatusOK},
 	}
 	for i, tc := range cases {
 		code, out := c.post("/api/register", tc.body)

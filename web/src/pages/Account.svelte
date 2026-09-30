@@ -1,8 +1,81 @@
 <script>
   import AuthLayout from '../components/AuthLayout.svelte';
-  import { app, link } from '../lib/state.svelte.js';
+  import Field from '../components/Field.svelte';
+  import Alert from '../components/Alert.svelte';
+  import PasswordRules from '../components/PasswordRules.svelte';
+  import { api } from '../lib/api.js';
+  import { passwordRules } from '../lib/password.js';
+  import { app, link, refreshSession, toast } from '../lib/state.svelte.js';
 
   const user = $derived(app.session.user);
+
+  let open = $state(''); // 'email' | 'password' | ''
+  let busy = $state(false);
+  let error = $state('');
+
+  function toggle(section) {
+    open = open === section ? '' : section;
+    error = '';
+  }
+
+  // Email
+  let newEmail = $state('');
+  let emailPassword = $state('');
+
+  async function saveEmail(e) {
+    e.preventDefault();
+    error = '';
+    busy = true;
+    const r = await api('/account/email', { email: newEmail, password: emailPassword });
+    busy = false;
+    if (!r.ok) {
+      error = r.data.error;
+      return;
+    }
+    toast(r.data.message);
+    emailPassword = '';
+    newEmail = '';
+    open = '';
+    refreshSession();
+  }
+
+  async function resend() {
+    busy = true;
+    const r = await api('/account/email/resend', {});
+    busy = false;
+    toast(r.ok ? r.data.message : r.data.error, r.ok ? 'success' : 'error');
+  }
+
+  // Password
+  let current = $state('');
+  let next = $state('');
+  let confirm = $state('');
+
+  async function savePassword(e) {
+    e.preventDefault();
+    error = '';
+    if (!passwordRules(next).every((r) => r.ok)) {
+      error = 'Your new password does not meet all the rules yet.';
+      return;
+    }
+    if (next !== confirm) {
+      error = 'The new passwords do not match.';
+      return;
+    }
+    busy = true;
+    const r = await api('/account/password', { current, new: next });
+    busy = false;
+    if (!r.ok) {
+      error = r.data.error;
+      return;
+    }
+    toast(r.data.message);
+    current = next = confirm = '';
+    open = '';
+  }
+
+  const sectionBtn =
+    'flex w-full items-center justify-between gap-3 rounded-lg px-1 py-2 text-left text-sm font-medium text-zinc-200 transition hover:text-white';
 </script>
 
 <AuthLayout title="You're signed in">
@@ -21,7 +94,7 @@
         <p class="truncate text-sm text-zinc-400">
           {#if user.email}
             {user.email}
-            {#if !user.email_verified}<span class="text-amber-400/90">· not verified</span>{/if}
+            {#if user.email_verified}<span class="text-emerald-400">· verified</span>{:else}<span class="text-amber-400/90">· not verified</span>{/if}
           {:else}
             No email address
           {/if}
@@ -29,9 +102,56 @@
       </div>
     </div>
 
-    <p class="text-sm text-zinc-400">
-      You can now open the sites you have access to. This login works on all of them.
-    </p>
+    {#if user.email && !user.email_verified}
+      <div class="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3.5 py-3 text-sm text-amber-200">
+        Check your inbox and click the link to verify {user.email}.
+        <button type="button" class="ml-1 font-medium underline underline-offset-2 hover:text-amber-100 disabled:opacity-60" onclick={resend} disabled={busy}>Send again</button>
+      </div>
+    {/if}
+
+    <p class="text-sm text-zinc-400">You can now open the sites you have access to. This login works on all of them.</p>
+
+    <div class="divide-y divide-zinc-800 border-y border-zinc-800">
+      <div class="py-1">
+        <button type="button" class={sectionBtn} onclick={() => toggle('email')} aria-expanded={open === 'email'}>
+          {user.email ? 'Change email address' : 'Add email address'}
+          <svg viewBox="0 0 24 24" class="size-4 text-zinc-500 transition {open === 'email' ? 'rotate-180' : ''}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+        </button>
+        {#if open === 'email'}
+          <form class="space-y-3 pb-4 pt-2" onsubmit={saveEmail}>
+            {#if error}<Alert>{error}</Alert>{/if}
+            <Field label="Email address" type="email" autocomplete="email" bind:value={newEmail}
+              hint={user.email ? 'Leave empty to remove your address.' : "We'll send a link to confirm it."} />
+            <Field label="Your password" type="password" autocomplete="current-password" required bind:value={emailPassword} />
+            <button type="submit" disabled={busy}
+              class="w-full rounded-lg bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:opacity-60">
+              {busy ? 'Saving…' : 'Save'}
+            </button>
+          </form>
+        {/if}
+      </div>
+      <div class="py-1">
+        <button type="button" class={sectionBtn} onclick={() => toggle('password')} aria-expanded={open === 'password'}>
+          Change password
+          <svg viewBox="0 0 24 24" class="size-4 text-zinc-500 transition {open === 'password' ? 'rotate-180' : ''}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+        </button>
+        {#if open === 'password'}
+          <form class="space-y-3 pb-4 pt-2" onsubmit={savePassword}>
+            {#if error}<Alert>{error}</Alert>{/if}
+            <Field label="Current password" type="password" autocomplete="current-password" required bind:value={current} />
+            <Field label="New password" type="password" autocomplete="new-password" required bind:value={next}>
+              <PasswordRules password={next} />
+            </Field>
+            <Field label="Confirm new password" type="password" autocomplete="new-password" required bind:value={confirm} />
+            <button type="submit" disabled={busy}
+              class="w-full rounded-lg bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:opacity-60">
+              {busy ? 'Saving…' : 'Change password'}
+            </button>
+            <p class="text-xs text-zinc-500">Your other devices will be signed out.</p>
+          </form>
+        {/if}
+      </div>
+    </div>
 
     <div class="space-y-2">
       {#if user.is_admin}

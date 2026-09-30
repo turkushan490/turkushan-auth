@@ -80,8 +80,20 @@ func TestRegisterUniqueAndLockout(t *testing.T) {
 	if _, err := s.RegisterUser(ctx, "bob", "hash", ""); err != ErrUsernameTaken {
 		t.Errorf("duplicate username: %v", err)
 	}
-	if _, err := s.RegisterUser(ctx, "bob2", "hash", "bob@example.com"); err != ErrEmailTaken {
-		t.Errorf("duplicate email: %v", err)
+	// An unverified address doesn't reserve it...
+	if _, err := s.RegisterUser(ctx, "bob2", "hash", "bob@example.com"); err != nil {
+		t.Errorf("unverified duplicate email should be allowed: %v", err)
+	}
+	// ...a verified one does.
+	if ok, err := s.VerifyEmail(ctx, id, "bob@example.com"); !ok || err != nil {
+		t.Fatalf("verify: %v %v", ok, err)
+	}
+	if _, err := s.RegisterUser(ctx, "bob3", "hash", "bob@example.com"); err != ErrEmailTaken {
+		t.Errorf("duplicate verified email: %v", err)
+	}
+	bob2, _ := s.UserByUsername(ctx, "bob2")
+	if _, err := s.VerifyEmail(ctx, bob2.ID, "bob@example.com"); err != ErrEmailTaken {
+		t.Errorf("second account verifying the same address: %v", err)
 	}
 	if _, err := s.RegisterUser(ctx, "carol", "hash", ""); err != nil {
 		t.Errorf("two users without email must be allowed: %v", err)

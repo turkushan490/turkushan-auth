@@ -139,4 +139,11 @@ CREATE TABLE settings (
   value TEXT NOT NULL
 );
 `,
+	// 2: an email is only reserved once it's verified, so typing someone else's
+	// address at sign-up can't block the real owner from using it.
+	`
+DROP INDEX users_email;
+CREATE UNIQUE INDEX users_verified_email ON users (email) WHERE email_verified_at IS NOT NULL;
+CREATE INDEX users_email ON users (email);
+`,
 }

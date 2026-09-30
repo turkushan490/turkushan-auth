@@ -76,11 +76,17 @@ func (s *Store) CreateUser(ctx context.Context, username, passwordHash string, i
 	return res.LastInsertId()
 }
 
-// RegisterUser inserts a self-registered user. email may be "".
+// RegisterUser inserts a self-registered user. email may be ""; it starts
+// unverified, and is refused only when another account already verified it.
 func (s *Store) RegisterUser(ctx context.Context, username, passwordHash, email string) (int64, error) {
 	var emailArg any
 	if email != "" {
 		emailArg = email
+		if taken, err := s.EmailInUse(ctx, email, 0); err != nil {
+			return 0, err
+		} else if taken {
+			return 0, ErrEmailTaken
+		}
 	}
 	res, err := s.DB.ExecContext(ctx,
 		`INSERT INTO users (username, password_hash, email, created_at) VALUES (?, ?, ?, ?)`,
@@ -92,6 +98,9 @@ func (s *Store) RegisterUser(ctx context.Context, username, passwordHash, email 
 }
 
 func uniqueErr(err error) error {
+	if err == nil {
+		return nil
+	}
 	msg := err.Error()
 	switch {
 	case strings.Contains(msg, "UNIQUE") && strings.Contains(msg, "users.username"):

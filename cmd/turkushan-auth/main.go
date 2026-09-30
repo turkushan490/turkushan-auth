@@ -128,6 +128,9 @@ func cleanupSessions(ctx context.Context, st *store.Store, log *slog.Logger) {
 			} else if n > 0 {
 				log.Info("expired sessions removed", "count", n)
 			}
+			if err := st.DeleteExpiredTokens(ctx); err != nil {
+				log.Error("token cleanup", "err", err)
+			}
 		}
 	}
 }
