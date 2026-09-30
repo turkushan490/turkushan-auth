@@ -35,14 +35,16 @@
 
     <div class="space-y-2">
       {#if user.is_admin}
-        <button
-          type="button"
-          disabled
-          title="Coming in a later update"
-          class="flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-700 px-4 py-2.5 text-sm font-medium text-zinc-400 disabled:cursor-not-allowed"
+        <a
+          href="/admin"
+          onclick={link}
+          class="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition hover:bg-indigo-400"
         >
-          Admin panel <span class="text-xs text-zinc-500">(coming soon)</span>
-        </button>
+          <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3l8 3v6c0 4.5-3.2 8.3-8 9-4.8-.7-8-4.5-8-9V6z" />
+          </svg>
+          Admin panel
+        </a>
       {/if}
       <a
         href="/logout"

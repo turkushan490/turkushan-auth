@@ -60,11 +60,32 @@ func New(cfg *config.Config, st *store.Store, log *slog.Logger, dist fs.FS) (htt
 
 	r.Get("/healthz", s.healthz)
 	r.Route("/api", func(r chi.Router) {
-		r.Use(s.csrfProtect)
-		r.Get("/session", s.handleSession)
-		r.Post("/login", s.handleLogin)
-		r.Post("/register", s.handleRegister)
-		r.Post("/logout", s.handleLogout)
+		// NPM's auth_request subrequest: no CSRF token, and any HTTP method.
+		r.HandleFunc("/auth/nginx", s.handleForwardAuth)
+
+		r.Group(func(r chi.Router) {
+			r.Use(s.csrfProtect)
+			r.Get("/session", s.handleSession)
+			r.Post("/login", s.handleLogin)
+			r.Post("/register", s.handleRegister)
+			r.Post("/logout", s.handleLogout)
+			r.Get("/access", s.handleAccess)
+
+			r.Route("/admin", func(r chi.Router) {
+				r.Use(s.requireAdmin)
+				r.Get("/data", s.handleAdminData)
+				r.Get("/audit", s.handleAdminAudit)
+				r.Post("/sites", s.handleCreateSite)
+				r.Put("/sites/{id}", s.handleUpdateSite)
+				r.Delete("/sites/{id}", s.handleDeleteSite)
+				r.Put("/access", s.handleSetAccess)
+				r.Put("/users/{id}/status", s.handleSetUserStatus)
+				r.Put("/users/{id}/password", s.handleSetUserPassword)
+				r.Delete("/users/{id}", s.handleDeleteUser)
+				r.Put("/settings", s.handleUpdateSettings)
+				r.Post("/settings/test-discord", s.handleTestDiscord)
+			})
+		})
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusNotFound, "Not found.")
 		})

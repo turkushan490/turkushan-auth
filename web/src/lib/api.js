@@ -3,14 +3,15 @@ function cookie(name) {
   return m ? decodeURIComponent(m[1]) : '';
 }
 
-// api('/session') does a GET; api('/login', {...}) POSTs JSON with the CSRF token.
-// Always resolves to { ok, status, data }; data.error holds a message for the user.
-export async function api(path, body) {
-  const opts = { method: 'GET', headers: { Accept: 'application/json' }, credentials: 'same-origin' };
+// api('/session') GETs; api('/login', {...}) POSTs JSON; api(path, body, 'PUT' | 'DELETE') for the rest.
+// Every non-GET carries the CSRF token. Always resolves to { ok, status, data };
+// data.error holds a message for the user.
+export async function api(path, body, method) {
+  method = method || (body === undefined ? 'GET' : 'POST');
+  const opts = { method, headers: { Accept: 'application/json' }, credentials: 'same-origin' };
+  if (method !== 'GET') opts.headers['X-CSRF-Token'] = cookie('ta_csrf');
   if (body !== undefined) {
-    opts.method = 'POST';
     opts.headers['Content-Type'] = 'application/json';
-    opts.headers['X-CSRF-Token'] = cookie('ta_csrf');
     opts.body = JSON.stringify(body);
   }
 

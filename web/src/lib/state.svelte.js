@@ -5,7 +5,16 @@ export const app = $state({
   session: null, // { authenticated, user, app_url, brand }
   path: location.pathname,
   flash: '', // one-off message for the next page, e.g. "You're logged out."
+  toast: null, // { text, kind, id } shown bottom-right for a few seconds
 });
+
+export function toast(text, kind = 'success') {
+  const id = Date.now() + Math.random();
+  app.toast = { text, kind, id };
+  setTimeout(() => {
+    if (app.toast?.id === id) app.toast = null;
+  }, kind === 'error' ? 6000 : 3000);
+}
 
 export async function refreshSession() {
   const r = await api('/session');

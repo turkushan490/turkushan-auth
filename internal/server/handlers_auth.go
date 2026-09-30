@@ -2,6 +2,7 @@ package server
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 	"unicode"
@@ -161,6 +162,7 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.log.Info("user registered", "username", username, "ip", ip)
+	s.notifyAdmin(ctx, "New account", fmt.Sprintf("**%s** created an account.", username))
 	if err := s.startSession(w, r, id, ip); err != nil {
 		s.serverError(w, r, err)
 		return

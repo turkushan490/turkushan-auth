@@ -4,20 +4,22 @@
   import Register from './pages/Register.svelte';
   import Account from './pages/Account.svelte';
   import Logout from './pages/Logout.svelte';
+  import Pending from './pages/Pending.svelte';
+  import Admin from './pages/admin/Admin.svelte';
+  import Toast from './components/Toast.svelte';
 
   refreshSession();
 
   const page = $derived.by(() => {
-    switch (app.path) {
-      case '/login':
-        return 'login';
-      case '/register':
-        return 'register';
-      case '/logout':
-        return 'logout';
-      default:
-        return app.session?.authenticated ? 'account' : 'login';
-    }
+    const signedIn = app.session?.authenticated;
+    const path = app.path;
+    if (path === '/login') return 'login';
+    if (path === '/register') return 'register';
+    if (path === '/logout') return 'logout';
+    if (!signedIn) return 'login';
+    if (path === '/pending') return 'pending';
+    if (path === '/admin' || path.startsWith('/admin/')) return 'admin';
+    return 'account';
   });
 </script>
 
@@ -34,6 +36,12 @@
   <Register />
 {:else if page === 'logout'}
   <Logout />
+{:else if page === 'pending'}
+  <Pending />
+{:else if page === 'admin'}
+  <Admin />
 {:else}
   <Account />
 {/if}
+
+<Toast />
