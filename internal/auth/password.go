@@ -23,6 +23,16 @@ var defaultParams = argonParams{memory: 64 * 1024, time: 3, threads: 2, keyLen: 
 
 var ErrMalformedHash = errors.New("malformed password hash")
 
+// Each hash takes 64 MiB of RAM. Capping how many run at once keeps a burst of
+// login attempts from exhausting the server's memory; extra requests just wait.
+var hashSlots = make(chan struct{}, 4)
+
+func idKey(password, salt []byte, p argonParams, keyLen uint32) []byte {
+	hashSlots <- struct{}{}
+	defer func() { <-hashSlots }()
+	return argon2.IDKey(password, salt, p.time, p.memory, p.threads, keyLen)
+}
+
 // HashPassword returns an argon2id hash in PHC string format.
 func HashPassword(password string) (string, error) {
 	salt := make([]byte, 16)
@@ -30,7 +40,7 @@ func HashPassword(password string) (string, error) {
 		return "", err
 	}
 	p := defaultParams
-	key := argon2.IDKey([]byte(password), salt, p.time, p.memory, p.threads, p.keyLen)
+	key := idKey([]byte(password), salt, p, p.keyLen)
 	b64 := base64.RawStdEncoding
 	return fmt.Sprintf("$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s",
 		argon2.Version, p.memory, p.time, p.threads,
@@ -62,6 +72,10 @@ func VerifyPassword(password, encoded string) (bool, error) {
 		return false, ErrMalformedHash
 	}
 
-	got := argon2.IDKey([]byte(password), salt, p.time, p.memory, p.threads, uint32(len(key)))
+	// Refuse absurd parameters from a tampered hash instead of allocating them.
+	if p.memory > 1<<20 || p.time > 20 || len(key) > 128 {
+		return false, ErrMalformedHash
+	}
+	got := idKey([]byte(password), salt, p, uint32(len(key)))
 	return subtle.ConstantTimeCompare(got, key) == 1, nil
 }

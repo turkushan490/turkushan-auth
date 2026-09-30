@@ -70,6 +70,9 @@ func run(log *slog.Logger) error {
 	} else {
 		log.Info("admin account", "result", string(res))
 	}
+	if res == store.BootstrapExisting && cfg.AdminPassword != "" {
+		log.Info("ADMIN_PASSWORD is only used to create the admin account; you can remove it from the container settings")
+	}
 
 	go cleanupSessions(ctx, st, log)
 

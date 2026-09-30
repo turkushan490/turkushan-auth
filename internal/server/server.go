@@ -56,7 +56,7 @@ func New(cfg *config.Config, st *store.Store, log *slog.Logger, dist fs.FS) (htt
 
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
-	r.Use(securityHeaders)
+	r.Use(securityHeaders(cfg.AppURL.Scheme == "https"))
 
 	r.Get("/healthz", s.healthz)
 	r.Route("/api", func(r chi.Router) {
@@ -141,17 +141,25 @@ func (s *Server) spa(w http.ResponseWriter, r *http.Request) {
 	w.Write(s.index)
 }
 
-func securityHeaders(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		h := w.Header()
-		h.Set("X-Content-Type-Options", "nosniff")
-		h.Set("X-Frame-Options", "DENY")
-		h.Set("Referrer-Policy", "same-origin")
-		h.Set("Content-Security-Policy",
-			"default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; "+
-				"frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
-		next.ServeHTTP(w, r)
-	})
+func securityHeaders(https bool) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			h := w.Header()
+			h.Set("X-Content-Type-Options", "nosniff")
+			h.Set("X-Frame-Options", "DENY")
+			h.Set("Referrer-Policy", "same-origin")
+			h.Set("Cross-Origin-Opener-Policy", "same-origin")
+			h.Set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()")
+			h.Set("Content-Security-Policy",
+				"default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; "+
+					"frame-ancestors 'none'; base-uri 'none'; form-action 'self'; object-src 'none'")
+			if https {
+				// Only the portal's own host; subdomains may still be plain http on the LAN.
+				h.Set("Strict-Transport-Security", "max-age=31536000")
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

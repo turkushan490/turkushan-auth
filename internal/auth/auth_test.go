@@ -41,6 +41,8 @@ func TestVerifyMalformed(t *testing.T) {
 		"$argon2id$v=19$m=0,t=3,p=2$c2FsdA$a2V5",
 		"$argon2id$v=19$m=65536,t=3,p=2$!!!$a2V5",
 		"$argon2id$v=19$m=65536,t=3,p=2$c2FsdA$",
+		"$argon2id$v=19$m=99999999,t=3,p=2$c2FsdA$a2V5", // would allocate ~100 GB
+		"$argon2id$v=19$m=65536,t=999,p=2$c2FsdA$a2V5",
 	} {
 		if ok, err := VerifyPassword("x", bad); ok || err == nil {
 			t.Errorf("%q: expected ErrMalformedHash, got ok=%v err=%v", bad, ok, err)

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -149,7 +150,7 @@ func TestSPA(t *testing.T) {
 	if rec := get(http.MethodPost, "/login"); rec.Code != http.StatusMethodNotAllowed {
 		t.Errorf("POST on page: got %d", rec.Code)
 	}
-	for _, hdr := range []string{"Content-Security-Policy", "X-Frame-Options", "X-Content-Type-Options"} {
+	for _, hdr := range []string{"Content-Security-Policy", "X-Frame-Options", "X-Content-Type-Options", "Strict-Transport-Security", "Referrer-Policy"} {
 		if get(http.MethodGet, "/").Header().Get(hdr) == "" {
 			t.Errorf("missing %s", hdr)
 		}
@@ -275,6 +276,31 @@ func TestLockout(t *testing.T) {
 	// Unknown users get the same answer as a wrong password.
 	if code, out := c.post("/api/login", map[string]string{"username": "nobody", "password": "Secret!1"}); code != http.StatusUnauthorized || out["error"] != msgBadLogin {
 		t.Fatalf("unknown user: %d %v", code, out)
+	}
+}
+
+func TestLoginRateLimit(t *testing.T) {
+	h, _ := newTestServer(t)
+	c := newClient(t, h)
+	var last int
+	for i := 0; i < 25; i++ {
+		// A different username each time, so only the per-IP limit can trigger.
+		last, _ = c.post("/api/login", map[string]string{"username": fmt.Sprintf("guess%d", i), "password": "Nope!123"})
+	}
+	if last != http.StatusTooManyRequests {
+		t.Errorf("25 logins from one IP: last status %d, want 429", last)
+	}
+}
+
+func TestRegisterRateLimit(t *testing.T) {
+	h, _ := newTestServer(t)
+	c := newClient(t, h)
+	var last int
+	for i := 0; i < 7; i++ {
+		last, _ = c.post("/api/register", map[string]string{"username": fmt.Sprintf("bot%d", i), "password": "Secret!1"})
+	}
+	if last != http.StatusTooManyRequests {
+		t.Errorf("7 registrations from one IP: last status %d, want 429", last)
 	}
 }
 
