@@ -1,0 +1,11 @@
+<CommunityApplications>
+  <Profile>
+**turkushan-auth**: a self-hosted login portal (forward auth) for Nginx Proxy Manager.
+
+Users register their own account, and you approve per site who gets in. One login works across all your subdomains. Everything runs in one container with a built-in SQLite database.
+
+Support and bug reports: [GitHub issues](https://github.com/turkushan490/turkushan-auth/issues).
+  </Profile>
+  <Icon>https://raw.githubusercontent.com/turkushan490/turkushan-auth/main/icon.svg</Icon>
+  <WebPage>https://github.com/turkushan490/turkushan-auth</WebPage>
+</CommunityApplications>

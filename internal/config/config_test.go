@@ -27,6 +27,33 @@ func TestParsePrefixes(t *testing.T) {
 	}
 }
 
+func TestDefaultCookieDomain(t *testing.T) {
+	for host, want := range map[string]string{
+		"auth.turkushan.com":     ".turkushan.com",
+		"login.home.example.com": ".home.example.com",
+		"example.com":            ".example.com",
+	} {
+		if got := DefaultCookieDomain(host); got != want {
+			t.Errorf("%s: got %s, want %s", host, got, want)
+		}
+	}
+}
+
+func TestLoadRequiresAppURL(t *testing.T) {
+	t.Setenv("APP_URL", "")
+	if _, err := Load(); err == nil {
+		t.Error("expected error without APP_URL")
+	}
+	t.Setenv("APP_URL", "https://auth.turkushan.com/")
+	c, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.CookieDomain != ".turkushan.com" || c.AppURL.String() != "https://auth.turkushan.com" {
+		t.Errorf("got cookie %q, url %q", c.CookieDomain, c.AppURL)
+	}
+}
+
 func TestLoadSecretGeneratesAndReuses(t *testing.T) {
 	t.Setenv("SESSION_SECRET", "")
 	c := &Config{DataDir: t.TempDir()}

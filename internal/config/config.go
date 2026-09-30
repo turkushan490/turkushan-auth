@@ -16,8 +16,8 @@ import (
 
 type Config struct {
 	Port              int
-	AppURL            *url.URL // public portal URL, e.g. https://auth.turkushan.com
-	CookieDomain      string   // e.g. .turkushan.com
+	AppURL            *url.URL // public portal URL, e.g. https://auth.example.com
+	CookieDomain      string   // e.g. .example.com
 	DataDir           string
 	AdminUser         string
 	AdminPassword     string
@@ -29,11 +29,10 @@ type Config struct {
 
 func Load() (*Config, error) {
 	c := &Config{
-		CookieDomain:      env("COOKIE_DOMAIN", ".turkushan.com"),
 		DataDir:           env("DATA_DIR", "/data"),
 		AdminUser:         os.Getenv("ADMIN_USER"),
 		AdminPassword:     os.Getenv("ADMIN_PASSWORD"),
-		PortalInternalURL: strings.TrimRight(env("PORTAL_INTERNAL_URL", "http://192.168.0.6:3010"), "/"),
+		PortalInternalURL: strings.TrimRight(env("PORTAL_INTERNAL_URL", ""), "/"),
 	}
 
 	var err error
@@ -47,17 +46,28 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 
-	u, err := url.Parse(env("APP_URL", "https://auth.turkushan.com"))
+	u, err := url.Parse(env("APP_URL", ""))
 	if err != nil || u.Scheme == "" || u.Host == "" {
-		return nil, errors.New("APP_URL must be a full URL like https://auth.turkushan.com")
+		return nil, errors.New("APP_URL is required and must be a full URL like https://auth.example.com")
 	}
 	u.Path = strings.TrimRight(u.Path, "/")
 	c.AppURL = u
+	c.CookieDomain = env("COOKIE_DOMAIN", DefaultCookieDomain(u.Hostname()))
 
-	if c.TrustedProxies, err = ParsePrefixes(env("TRUSTED_PROXIES", "172.16.0.0/12,192.168.0.6/32")); err != nil {
+	if c.TrustedProxies, err = ParsePrefixes(env("TRUSTED_PROXIES", "172.16.0.0/12")); err != nil {
 		return nil, fmt.Errorf("TRUSTED_PROXIES: %w", err)
 	}
 	return c, nil
+}
+
+// DefaultCookieDomain shares the cookie with the portal's sibling subdomains:
+// auth.example.com → .example.com. A bare domain is used as is.
+func DefaultCookieDomain(host string) string {
+	labels := strings.Split(host, ".")
+	if len(labels) >= 3 {
+		return "." + strings.Join(labels[1:], ".")
+	}
+	return "." + host
 }
 
 // ParsePrefixes parses a comma-separated list of IPs and CIDRs.
