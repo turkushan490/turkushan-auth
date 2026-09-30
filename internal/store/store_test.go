@@ -36,7 +36,7 @@ func TestBootstrapAdmin(t *testing.T) {
 		t.Fatal("expected error for short ADMIN_PASSWORD")
 	}
 
-	res, err := s.BootstrapAdmin(ctx, " Turkushan ", "first-password-123")
+	res, err := s.BootstrapAdmin(ctx, " Turkushan ", "First-password-123")
 	if err != nil || res != BootstrapCreated {
 		t.Fatalf("create: got %q %v", res, err)
 	}
@@ -49,12 +49,12 @@ func TestBootstrapAdmin(t *testing.T) {
 	if !isAdmin {
 		t.Error("bootstrapped user is not admin")
 	}
-	if ok, _ := auth.VerifyPassword("first-password-123", hash); !ok {
+	if ok, _ := auth.VerifyPassword("First-password-123", hash); !ok {
 		t.Error("stored hash does not verify")
 	}
 
 	// Restart with a different password: the account and its password stay as they were.
-	res, err = s.BootstrapAdmin(ctx, "turkushan", "other-password-456")
+	res, err = s.BootstrapAdmin(ctx, "turkushan", "Other-password-456")
 	if err != nil || res != BootstrapExisting {
 		t.Fatalf("second start: got %q %v", res, err)
 	}

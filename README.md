@@ -18,7 +18,7 @@ wget -O /boot/config/plugins/dockerMan/templates-user/my-turkushan-auth.xml \
 ```
 Then go to **Docker → Add Container → Template** and pick `turkushan-auth`.
 
-Fill in `APP_URL` (e.g. `https://auth.example.com`), `ADMIN_USER` and `ADMIN_PASSWORD` (min 10 characters), then click Apply.
+Fill in `APP_URL` (e.g. `https://auth.example.com`), `ADMIN_USER` and `ADMIN_PASSWORD` (at least 6 characters, 1 capital letter, 1 symbol), then click Apply.
 Check `http://<server-ip>:3010/healthz`: it should return `ok`.
 
 The container starts as root only to fix ownership of the appdata folder, then runs as `PUID:PGID` (default `99:100`).
@@ -43,7 +43,7 @@ GitHub Actions (`.github/workflows/build.yml`) builds the frontend, runs `go vet
 Local development:
 ```bash
 cd web && npm install && npm run build && cd ..
-APP_URL=http://localhost:3010 DATA_DIR=./data ADMIN_USER=admin ADMIN_PASSWORD=change-me-please go run ./cmd/turkushan-auth
+APP_URL=http://localhost:3010 DATA_DIR=./data ADMIN_USER=admin ADMIN_PASSWORD='Change!me' go run ./cmd/turkushan-auth
 ```
 
 ## License

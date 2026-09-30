@@ -65,13 +65,17 @@ func TestUsername(t *testing.T) {
 }
 
 func TestPassword(t *testing.T) {
-	if err := ValidatePassword("123456789"); err != ErrPasswordTooShort {
-		t.Errorf("9 chars: got %v", err)
-	}
-	if err := ValidatePassword("1234567890"); err != nil {
-		t.Errorf("10 chars: got %v", err)
-	}
-	if err := ValidatePassword(strings.Repeat("x", MaxPasswordLen+1)); err != ErrPasswordTooLong {
-		t.Errorf("too long: got %v", err)
+	for pw, want := range map[string]error{
+		"Ab!12":                         ErrPasswordTooShort,
+		"Ab!123":                        nil,
+		"Wacht#woord":                   nil,
+		"abc!123":                       ErrPasswordNoUpper,
+		"Abc1234":                       ErrPasswordNoSymbol,
+		"Abc 1234":                      ErrPasswordNoSymbol, // a space is not a symbol
+		"A!" + strings.Repeat("x", 255): ErrPasswordTooLong,
+	} {
+		if got := ValidatePassword(pw); got != want {
+			t.Errorf("%q: got %v, want %v", pw, got, want)
+		}
 	}
 }
