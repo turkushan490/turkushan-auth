@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/turkushan490/turkushan-auth/internal/auth"
 	"github.com/turkushan490/turkushan-auth/internal/config"
 	"github.com/turkushan490/turkushan-auth/internal/db"
 	"github.com/turkushan490/turkushan-auth/internal/server"
@@ -26,6 +28,16 @@ func main() {
 	}
 
 	log := slog.New(slog.NewTextHandler(os.Stdout, nil))
+
+	// Recovery when nobody can log in anymore:
+	//   docker exec turkushan-auth /turkushan-auth reset-password <username> <new password>
+	if len(os.Args) > 1 && os.Args[1] == "reset-password" {
+		if err := resetPassword(log, os.Args[2:]); err != nil {
+			fmt.Fprintln(os.Stderr, "reset-password:", err)
+			os.Exit(1)
+		}
+		return
+	}
 	if err := run(log); err != nil {
 		log.Error("fatal", "err", err)
 		os.Exit(1)
@@ -112,6 +124,58 @@ func run(log *slog.Logger) error {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	return srv.Shutdown(shutdownCtx)
+}
+
+// resetPassword sets a new password for a user, lifts any lock or block and
+// signs them out everywhere. It runs next to the live server on the same database.
+func resetPassword(log *slog.Logger, args []string) error {
+	if len(args) != 2 {
+		return errors.New("usage: reset-password <username> <new password>")
+	}
+	username := auth.NormalizeUsername(args[0])
+	if err := auth.ValidatePassword(args[1]); err != nil {
+		return err
+	}
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
+	// docker exec runs as root; switch to the app user so no root-owned files end up in /data.
+	if err := dropPrivileges(cfg, slog.New(slog.NewTextHandler(io.Discard, nil))); err != nil {
+		return err
+	}
+	sqlDB, err := db.Open(filepath.Join(cfg.DataDir, "turkushan-auth.db"))
+	if err != nil {
+		return err
+	}
+	defer sqlDB.Close()
+	ctx := context.Background()
+	if err := db.Migrate(ctx, sqlDB); err != nil {
+		return err
+	}
+	st := store.New(sqlDB)
+	u, err := st.UserByUsername(ctx, username)
+	if errors.Is(err, store.ErrNotFound) {
+		return fmt.Errorf("no user %q", username)
+	}
+	if err != nil {
+		return err
+	}
+	hash, err := auth.HashPassword(args[1])
+	if err != nil {
+		return err
+	}
+	if err := st.SetPassword(ctx, u.ID, hash); err != nil {
+		return err
+	}
+	if err := st.SetUserStatus(ctx, u.ID, "active"); err != nil {
+		return err
+	}
+	if err := st.Audit(ctx, "system", "user.password_reset", u.Username, "reset-password command", ""); err != nil {
+		return err
+	}
+	fmt.Printf("Password for %s changed. They can sign in now.\n", u.Username)
+	return nil
 }
 
 func cleanupSessions(ctx context.Context, st *store.Store, log *slog.Logger) {

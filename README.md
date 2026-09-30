@@ -1,27 +1,35 @@
 # turkushan-auth
 
-Self-hosted login portal (forward auth) for your subdomains behind Nginx Proxy Manager.
-People register their own account, you approve per site who may enter, and one login works on all subdomains.
-One container: a Go backend and a Svelte frontend in a single binary, with SQLite in `/data`.
+A self-hosted login portal for your subdomains behind **Nginx Proxy Manager** (forward auth, like Tinyauth).
+People create their own account, you decide per site who gets in, and one login works on all your subdomains.
 
-> **Beta / work in progress.** The skeleton runs: database, admin account bootstrap and `/healthz`.
-> Login, forward auth and the admin panel are being built.
+Everything runs in **one container**: a Go backend and a Svelte frontend in a single binary, with SQLite in `/data`. No database server, no Redis, no compose.
 
-## Install on Unraid
+## Features
 
-**Via Community Apps:** search for `turkushan-auth` in the **Apps** tab (once it's listed).
+- **Sign in, create account, forgot password**: dark, mobile-friendly pages
+- **Single sign-on** across `*.your-domain` with one session cookie
+- **Per site:** "needs approval" or "open for everyone signed in", and optionally "needs a verified email"
+- **Back to where you were:** after signing in, visitors land on the page they opened
+- **Admin panel:**
+  - approve/deny requests
+  - manage users (access per site, block, unlock, reset password, delete)
+  - add sites with a ready-to-paste NPM config and a **Copy** button
+  - audit log of every admin action
+- **Email** via any SMTP provider (Resend recommended): verify addresses, reset passwords
+- **Discord notifications** for new accounts and access requests
+- **Security:** argon2id, server-side sessions, CSRF protection, rate limits, lockout, open-redirect protection, strict security headers; see [SECURITY.md](SECURITY.md)
 
-**Manually:** open the Unraid terminal and run:
-```bash
-wget -O /boot/config/plugins/dockerMan/templates-user/my-turkushan-auth.xml \
-  https://raw.githubusercontent.com/turkushan490/turkushan-auth/main/templates/turkushan-auth.xml
-```
-Then go to **Docker → Add Container → Template** and pick `turkushan-auth`.
+## Get started
 
-Fill in `APP_URL` (e.g. `https://auth.example.com`), `ADMIN_USER` and `ADMIN_PASSWORD` (at least 6 characters, 1 capital letter, 1 symbol), then click Apply.
-Check `http://<server-ip>:3010/healthz`: it should return `ok`.
+**[📖 Read the guide](docs/GUIDE.md)**. It covers installing on Unraid, the NPM setup, protecting your first site, email with Resend, Discord, backups and troubleshooting.
 
-The container starts as root only to fix ownership of the appdata folder, then runs as `PUID:PGID` (default `99:100`).
+Quick version:
+
+1. Install `turkushan-auth` from **Community Apps**, or via the template in [`templates/`](templates/turkushan-auth.xml). Set `APP_URL`, `ADMIN_USER` and `ADMIN_PASSWORD`.
+2. In NPM, add a proxy host `auth.your-domain` → `<server-ip>:3010` with SSL, and **Block Common Exploits off**.
+3. Sign in at `https://auth.your-domain` → **Admin panel → Sites → Add site**.
+4. Copy the site's **NPM config** into the Advanced tab of that site's proxy host in NPM.
 
 ## Settings
 
@@ -30,21 +38,32 @@ The container starts as root only to fix ownership of the appdata folder, then r
 | `APP_URL` | **required** | public portal URL, e.g. `https://auth.example.com` |
 | `ADMIN_USER` / `ADMIN_PASSWORD` | | admin created on first start; the password is not overwritten on restart |
 | `COOKIE_DOMAIN` | derived from `APP_URL` | `auth.example.com` gives `.example.com`, shared by all subdomains |
-| `PORTAL_INTERNAL_URL` | | how NPM reaches the portal, e.g. `http://192.168.1.10:3010` (used in the generated nginx snippets) |
 | `TRUSTED_PROXIES` | `172.16.0.0/12` | proxy addresses allowed to pass client IP headers |
+| `PORTAL_INTERNAL_URL` | | how NPM reaches the portal; can also be set in the admin panel |
 | `SESSION_SECRET` | auto-generated in `/data/secret` | |
-| `PUID` / `PGID` | `99` / `100` | |
+| `PUID` / `PGID` | `99` / `100` | user the app runs as |
 | `PORT` | `3010` | port inside the container |
 
-## Build
+Email, Discord and the portal address are set in **Admin panel → Settings**.
 
-GitHub Actions (`.github/workflows/build.yml`) builds the frontend, runs `go vet` and `go test`, then pushes `ghcr.io/turkushan490/turkushan-auth:latest` on every push to `main`. A `v1.2.3` tag also pushes `:1.2.3`.
+## Recovery
 
-Local development:
+Locked out of the admin account without a verified email?
+
+```bash
+docker exec turkushan-auth /turkushan-auth reset-password <username> '<new password>'
+```
+
+## Development
+
+GitHub Actions (`.github/workflows/build.yml`) builds the frontend, runs `go vet`, `go test` and `govulncheck`, then pushes `ghcr.io/turkushan490/turkushan-auth:latest` on every push to `main`. A `v1.2.3` tag also pushes `:1.2.3`.
+
 ```bash
 cd web && npm install && npm run build && cd ..
 APP_URL=http://localhost:3010 DATA_DIR=./data ADMIN_USER=admin ADMIN_PASSWORD='Change!me' go run ./cmd/turkushan-auth
 ```
+
+For frontend work, `npm run dev` in `web/` proxies `/api` to a portal running on port 3010.
 
 ## License
 

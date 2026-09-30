@@ -7,7 +7,7 @@
   <Privileged>false</Privileged>
   <Icon>https://raw.githubusercontent.com/turkushan490/turkushan-auth/main/icon.svg</Icon>
   <WebUI>http://[IP]:[PORT:3010]/</WebUI>
-  <Overview>Self-hosted login portal (forward auth) for your subdomains behind Nginx Proxy Manager. People register their own account, you approve who may open which site in the admin panel, and one login works on all subdomains (SSO cookie). Per site you choose: approval required or open to any logged-in user, and whether a verified email is required. Single container, SQLite database in /data, no extra services. Work in progress: login, forward auth and the admin panel are being built.</Overview>
+  <Overview>Self-hosted login portal (forward auth) for your subdomains behind Nginx Proxy Manager. People register their own account, you approve who may open which site in the admin panel, and one login works on all subdomains (SSO cookie). Per site you choose: approval required or open to any logged-in user, and whether a verified email is required. Single container, SQLite database in /data, no extra services. Includes an admin panel with a ready-to-paste NPM config per site, email verification and password reset via any SMTP provider (Resend recommended), and Discord notifications. Guide: https://github.com/turkushan490/turkushan-auth/blob/main/docs/GUIDE.md</Overview>
   <Support>https://github.com/turkushan490/turkushan-auth/issues</Support>
   <Project>https://github.com/turkushan490/turkushan-auth</Project>
   <TemplateURL>https://raw.githubusercontent.com/turkushan490/turkushan-auth/main/templates/turkushan-auth.xml</TemplateURL>
@@ -15,8 +15,8 @@
   <Category>Security: Network:Proxy</Category>
   <ExtraSearchTerms>auth sso login forward-auth nginx proxy manager npm auth_request tinyauth authelia</ExtraSearchTerms>
   <Requires>Nginx Proxy Manager (or nginx with auth_request) and a domain with HTTPS.</Requires>
-  <Changes>Initial beta: skeleton, database, admin account bootstrap, health check.</Changes>
-  <Date>2026-09-30</Date>
+  <Changes>Admin panel, forward auth, per-site approval and verified-email rules, email (verify + password reset), Discord notifications, reset-password recovery command.</Changes>
+  <Date>2026-10-01</Date>
   <Beta>true</Beta>
   <MinVer>6.12</MinVer>
   <License>MIT</License>
