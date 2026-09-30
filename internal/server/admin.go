@@ -200,6 +200,15 @@ func (s *Server) cleanSite(in siteInput) (*store.Site, string) {
 	if !validBaseURL(upstream) {
 		return nil, "Enter where the app runs, like http://192.168.0.6:3000."
 	}
+	// Pointing a site at itself (or at the portal) makes NPM loop and answer 502.
+	up, _ := url.Parse(upstream)
+	upHost := strings.ToLower(up.Hostname())
+	if upHost == host || upHost == s.cfg.AppURL.Hostname() {
+		return nil, "\"Where the app runs\" must be the app's own address (IP and port, like http://192.168.0.6:3000), not " + up.Host + "."
+	}
+	if portal, err := s.portalAddress(context.Background()); err == nil && portal != "" && strings.EqualFold(upstream, portal) {
+		return nil, "That's the login portal's address. Enter where the app itself runs, like http://192.168.0.6:3000."
+	}
 
 	return &store.Site{
 		Name: name, Host: host, Upstream: upstream,

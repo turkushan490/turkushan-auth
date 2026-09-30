@@ -175,6 +175,8 @@ func TestAdminAPI(t *testing.T) {
 		{"name": "Inject", "host": "x.example.com", "upstream": "http://1.2.3.4; return 200"},
 		{"name": "Path", "host": "y.example.com", "upstream": "http://1.2.3.4/path"},
 		{"name": "", "host": "z.example.com", "upstream": "http://1.2.3.4"},
+		{"name": "Loop", "host": "loop.example.com", "upstream": "https://loop.example.com"},
+		{"name": "Portal", "host": "p.example.com", "upstream": "https://auth.example.com"},
 	} {
 		if code, _ := admin.post("/api/admin/sites", bad); code != http.StatusBadRequest {
 			t.Errorf("site %v: %d", bad, code)
@@ -196,6 +198,10 @@ func TestAdminAPI(t *testing.T) {
 	snip = data["sites"].([]any)[0].(map[string]any)["snippet"].(string)
 	if !strings.Contains(snip, "proxy_pass http://192.168.0.6:3010/api/auth/nginx;") {
 		t.Errorf("snippet without portal url:\n%s", snip)
+	}
+	portalAsUpstream := map[string]any{"name": "Oops", "host": "oops.example.com", "upstream": "http://192.168.0.6:3010"}
+	if code, _ := admin.post("/api/admin/sites", portalAsUpstream); code != http.StatusBadRequest {
+		t.Errorf("portal address as upstream: %d", code)
 	}
 
 	// Settings validation.
