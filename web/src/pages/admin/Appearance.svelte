@@ -264,10 +264,10 @@
           <div class="mt-3 h-7 rounded-md border border-zinc-700/80 bg-zinc-950/60"></div>
           <div class="mt-2 h-7 rounded-md border border-zinc-700/80 bg-zinc-950/60"></div>
           <div class="mt-3 grid h-8 place-items-center rounded-md bg-indigo-500 text-xs font-semibold text-white">Sign in</div>
+          <p class="mt-3 border-t border-zinc-800 pt-3 text-center text-[11px] text-zinc-400">
+            No account yet? <span class="font-medium text-indigo-400">Create one</span>
+          </p>
         </div>
-        <p class="mt-3 text-[11px] text-zinc-300 [text-shadow:0_1px_6px_rgb(0_0_0/0.7)]">
-          No account yet? <span class="font-medium text-indigo-400">Create one</span>
-        </p>
       </div>
     </div>
   </aside>

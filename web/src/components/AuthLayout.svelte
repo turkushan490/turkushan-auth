@@ -41,12 +41,12 @@
       <div class="mt-6">
         {@render children()}
       </div>
+      <!-- Inside the card, so it stays readable on any background. -->
+      {#if footer}
+        <div class="mt-6 border-t border-zinc-800 pt-5 text-center text-sm text-zinc-400">
+          {@render footer()}
+        </div>
+      {/if}
     </div>
-
-    {#if footer}
-      <div class="mt-6 text-center text-sm text-zinc-300 [text-shadow:0_1px_6px_rgb(0_0_0/0.7)]">
-        {@render footer()}
-      </div>
-    {/if}
   </div>
 </main>
