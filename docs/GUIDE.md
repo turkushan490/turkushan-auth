@@ -96,6 +96,8 @@ Make sure `auth.example.com` points to your public IP in DNS, like your other su
 
 ## 3. First sign-in
 
+![Sign-in page](screenshots/login.png)
+
 Open `https://auth.example.com` and sign in with `ADMIN_USER` / `ADMIN_PASSWORD`. You'll see **You're signed in** with an **Admin** badge, and an **Admin panel** button.
 
 In **Admin panel → Settings**, set **Portal address for NPM** to how NPM reaches the container, e.g. `http://192.168.0.6:3010`. It's filled into every NPM config the panel generates.
@@ -129,6 +131,8 @@ Example: LANraragi at `manga.example.com`, running on `192.168.0.6:3000`.
 | Needs a verified email | off | On = only users with a verified email address. Needs email to be set up (step 7). |
 
 Click **Add site**, open **NPM config** on the site and click **Copy**.
+
+![Sites tab with the NPM config](screenshots/admin-sites.png)
 
 **In NPM:** open the proxy host for `manga.example.com` (create it as usual if it doesn't exist yet) → **Advanced** tab → replace everything in *Custom Nginx Configuration* with the copied config → **Save**.
 
@@ -169,6 +173,8 @@ Sites that are **not** in the Sites list are denied for everyone. That way a for
 2. They see **Waiting for approval**. You see the request in **Admin panel → Requests** (and get a Discord message, see step 9).
 3. Click **Approve**. They can open the site right away (**Check again** on their page, or just reload the site).
 
+![Requests tab](screenshots/admin-requests.png)
+
 You can also give access up front: **Users** → click the user → **Give access** next to the site. Revoking works the same way, and takes effect on their next page load.
 
 Admins can always open every registered site.
@@ -182,6 +188,8 @@ Admins can always open every registered site.
 A group gives its members **access to sites** and, if you want, **rights in the admin panel**. A user can be in several groups and gets everything their groups give, added together.
 
 Admin panel → **Groups** → **New group**, then open the group:
+
+![Groups tab](screenshots/admin-groups.png)
 
 | Section | What you set |
 |---|---|
@@ -210,6 +218,8 @@ Example: a group **Friends** with *Can open* on LANraragi and a rule "Email doma
 
 - **I set the password:** you type a password and tell them. They can change it on their account page.
 - **Send invite mail:** they get a mail with a link to choose their own password (needs email to be set up, see the next step). Using the link also verifies their address.
+
+![Users tab](screenshots/admin-users.png)
 
 Pick their groups right away. The Users tab can be searched by name, email or group, filtered by site (who can open it), group and status, and sorted by name, newest or last login.
 
@@ -304,6 +314,8 @@ Adds **Continue with Discord** and **Continue with Google** buttons to the sign-
 
 ### 8.3 How it works for users
 
+![First sign-in with Discord](screenshots/welcome.png)
+
 - **First time:** after Discord/Google they see **Almost there**: choose a username and, if they want, a password. Or **Skip**: they get a suggested username and no password, and keep signing in with Discord/Google.
 - **Already have an account?** If the verified email at Discord/Google is the same as the verified email on an account, they're signed in to that account. No second account is made.
 - **Account page → Sign-in methods:** connect or disconnect Discord/Google, and set a password later. The last way to sign in can't be removed.
@@ -324,6 +336,14 @@ In **Groups → (a group) → Auto-add rules** there are three more kinds:
 
 For the Discord rules you paste the **server ID** and **role ID**: in Discord, turn on **Settings → Advanced → Developer Mode**, then right-click the server icon or the role → **Copy ID**.
 
+**Example: a Discord role unlocks sites**
+
+1. **Groups → New group**, e.g. "Discord VIP".
+2. In the group, under **Sites**, tick **Can open** for the sites the role unlocks.
+3. Under **Auto-add rules**, choose **Discord role**, paste the server ID and role ID, and click **Add rule**.
+
+Everyone with that role is now in the group, and into those sites, right after they sign in with Discord.
+
 Server and role membership are checked **every time someone signs in with Discord**. Take a role away in Discord and they leave the group at their next Discord sign-in. The first time after you add such a rule, people are asked by Discord for permission to share their server roles. No bot is needed.
 
 ---
@@ -338,6 +358,8 @@ Get a message when someone creates an account or asks for access to a site.
 ---
 
 ## 10. Make it yours: logo, colors and background
+
+![Appearance tab](screenshots/admin-appearance.png)
 
 Admin panel → **Appearance**. Everything you change shows right away as a preview on the page and in the small sign-in preview; it goes live for everyone when you click **Save**.
 

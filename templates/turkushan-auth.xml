@@ -20,6 +20,11 @@
   <Beta>true</Beta>
   <MinVer>6.12</MinVer>
   <License>MIT</License>
+  <Screenshot>https://raw.githubusercontent.com/turkushan490/turkushan-auth/main/docs/screenshots/login.png</Screenshot>
+  <Screenshot>https://raw.githubusercontent.com/turkushan490/turkushan-auth/main/docs/screenshots/admin-users.png</Screenshot>
+  <Screenshot>https://raw.githubusercontent.com/turkushan490/turkushan-auth/main/docs/screenshots/admin-groups.png</Screenshot>
+  <Screenshot>https://raw.githubusercontent.com/turkushan490/turkushan-auth/main/docs/screenshots/admin-sites.png</Screenshot>
+  <Screenshot>https://raw.githubusercontent.com/turkushan490/turkushan-auth/main/docs/screenshots/admin-appearance.png</Screenshot>
   <Config Name="Web port" Target="3010" Default="3010" Mode="tcp" Description="Port Nginx Proxy Manager uses to reach the portal." Type="Port" Display="always" Required="true" Mask="false">3010</Config>
   <Config Name="Data" Target="/data" Default="/mnt/user/appdata/turkushan-auth" Mode="rw" Description="SQLite database and generated secret." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/turkushan-auth</Config>
   <Config Name="APP_URL" Target="APP_URL" Default="" Mode="" Description="Public URL of the portal, e.g. https://auth.example.com" Type="Variable" Display="always" Required="true" Mask="false"></Config>

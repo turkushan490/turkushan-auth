@@ -169,7 +169,7 @@
           {/each}
           <span class="mx-1 h-6 w-px bg-zinc-700"></span>
           <input type="color" class={colorInput} value={isHex(draft.accent) ? draft.accent : defaultAccent} oninput={(e) => (draft.accent = e.currentTarget.value)} aria-label="Custom accent color" />
-          <input class="{input} w-28 font-mono" bind:value={draft.accent} placeholder={defaultAccent} maxlength="7" aria-label="Accent color code" />
+          <input class="{input} !w-28 font-mono" bind:value={draft.accent} placeholder={defaultAccent} maxlength="7" aria-label="Accent color code" />
         </div>
         <p class="mt-1.5 text-xs text-zinc-500">Used for buttons, links and highlights.</p>
       </div>
@@ -211,7 +211,7 @@
             <span class={label}>{draft.bg_type === 'gradient' ? 'From' : 'Color'}</span>
             <div class="flex items-center gap-2">
               <input type="color" class={colorInput} bind:value={draft.bg_color} aria-label="Background color" />
-              <input class="{input} w-28 font-mono" bind:value={draft.bg_color} maxlength="7" aria-label="Background color code" />
+              <input class="{input} !w-28 font-mono" bind:value={draft.bg_color} maxlength="7" aria-label="Background color code" />
             </div>
           </div>
           {#if draft.bg_type === 'gradient'}
@@ -219,7 +219,7 @@
               <span class={label}>To</span>
               <div class="flex items-center gap-2">
                 <input type="color" class={colorInput} bind:value={draft.bg_color2} aria-label="Second background color" />
-                <input class="{input} w-28 font-mono" bind:value={draft.bg_color2} maxlength="7" aria-label="Second background color code" />
+                <input class="{input} !w-28 font-mono" bind:value={draft.bg_color2} maxlength="7" aria-label="Second background color code" />
               </div>
             </div>
           {/if}

@@ -5,10 +5,13 @@ People create their own account, you decide per site who gets in, and one login 
 
 Everything runs in **one container**: a Go backend and a Svelte frontend in a single binary, with SQLite in `/data`. No database server, no Redis, no compose.
 
+![Sign-in page](docs/screenshots/login.png)
+
 ## Features
 
 - **Sign in, create account, forgot password**: dark, mobile-friendly pages
-- **Continue with Discord or Google** (optional), with auto-add rules by Discord server or role
+- **Continue with Discord or Google** (optional)
+- **Unlock sites by Discord server or role:** everyone with a certain role in your Discord server gets into the sites you choose, automatically, without a bot
 - **Single sign-on** across `*.your-domain` with one session cookie
 - **Per site:** "needs approval" or "open for everyone signed in", and optionally "needs a verified email"
 - **Back to where you were:** after signing in, visitors land on the page they opened
@@ -22,6 +25,28 @@ Everything runs in **one container**: a Go backend and a Svelte frontend in a si
 - **Email** via any SMTP provider (Resend recommended): verify addresses, reset passwords
 - **Discord notifications** for new accounts and access requests
 - **Security:** argon2id, server-side sessions, CSRF protection, rate limits, lockout, open-redirect protection, strict security headers; see [SECURITY.md](SECURITY.md)
+
+## Screenshots
+
+| | |
+|---|---|
+| ![Users](docs/screenshots/admin-users.png) **Users:** who can open what, groups, login methods, search and filters | ![Groups](docs/screenshots/admin-groups.png) **Groups:** site access, panel rights and auto-add rules |
+| ![Requests](docs/screenshots/admin-requests.png) **Requests:** approve or deny | ![Sites](docs/screenshots/admin-sites.png) **Sites:** rules per site and the NPM config to paste |
+| ![Appearance](docs/screenshots/admin-appearance.png) **Appearance:** logo, colors, font, background | ![Settings](docs/screenshots/admin-settings.png) **Settings:** email, Discord/Google login, notifications |
+| ![Waiting for approval](docs/screenshots/pending.png) **Waiting for approval** | ![First Discord sign-in](docs/screenshots/welcome.png) **First sign-in with Discord or Google** |
+| ![Email step](docs/screenshots/email-step.png) **Verified email needed** | ![Account](docs/screenshots/account.png) **Account page** |
+
+<img src="docs/screenshots/login-mobile.png" alt="Sign-in page on a phone" width="260">
+
+## Example: unlock sites with a Discord role
+
+Give everyone with a certain role in your Discord server access to a site, without approving them one by one:
+
+1. Turn on Discord login in **Settings → Sign in with Discord or Google** ([how](docs/GUIDE.md#81-discord)).
+2. **Groups → New group**, e.g. "Discord VIP". Under **Sites**, tick **Can open** for the sites the role unlocks.
+3. Under **Auto-add rules**, choose **Discord role** and paste your server ID and role ID (Discord → Settings → Advanced → Developer Mode, then right-click the server or role → Copy ID).
+
+From then on, everyone with that role gets in right after signing in with Discord. Take the role away and they're out at their next Discord sign-in. Roles are read when someone signs in, so no bot is needed. Details: [guide, step 8.4](docs/GUIDE.md#84-auto-add-rules-for-discord-and-google).
 
 ## Get started
 

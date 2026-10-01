@@ -197,12 +197,12 @@
   {/if}
 </div>
 
-<div class="{card} mb-4 grid gap-2 p-3 sm:grid-cols-2 lg:grid-cols-6">
+<div class="{card} mb-4 grid gap-2 p-3 sm:grid-cols-2 lg:grid-cols-5">
   <input
     type="search"
     placeholder="Search name, email or group…"
     bind:value={search}
-    class="rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 py-1.5 text-sm outline-none placeholder:text-zinc-600 focus:border-indigo-500 sm:col-span-2 lg:col-span-1"
+    class="rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 py-1.5 text-sm outline-none placeholder:text-zinc-600 focus:border-indigo-500 sm:col-span-2 lg:col-span-5"
   />
   <select bind:value={siteFilter} class={select} aria-label="Filter by site">
     <option value="">All sites</option>
