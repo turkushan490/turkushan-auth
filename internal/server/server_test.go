@@ -22,6 +22,13 @@ import (
 
 func newTestServer(t *testing.T) (http.Handler, *store.Store) {
 	t.Helper()
+	_, h, st := newTestServerFull(t)
+	return h, st
+}
+
+// newTestServerFull also returns the Server, for tests that swap out its providers.
+func newTestServerFull(t *testing.T) (*Server, http.Handler, *store.Store) {
+	t.Helper()
 	d, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {
 		t.Fatal(err)
@@ -38,11 +45,11 @@ func newTestServer(t *testing.T) (http.Handler, *store.Store) {
 	appURL, _ := url.Parse("https://auth.example.com")
 	cfg := &config.Config{AppURL: appURL, CookieDomain: ".example.com", DataDir: t.TempDir()}
 	st := store.New(d)
-	h, err := New(cfg, st, slog.New(slog.NewTextHandler(io.Discard, nil)), dist)
+	srv, h, err := build(cfg, st, slog.New(slog.NewTextHandler(io.Discard, nil)), dist)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return h, st
+	return srv, h, st
 }
 
 // client keeps cookies between requests and sends the CSRF header like the frontend.

@@ -53,6 +53,16 @@ export async function siteInfo(rd) {
   return r.ok ? r.data : { known: false };
 }
 
+// Messages for the ?oauth_error= codes the server sends back after a Discord/Google attempt.
+export const oauthErrors = {
+  disabled: "That sign-in method isn't available.",
+  state: "That sign-in attempt expired or didn't start here. Try again.",
+  cancelled: 'Sign-in was cancelled.',
+  provider: "We couldn't confirm who you are with that service. Try again.",
+  blocked: 'This account is blocked.',
+  taken: 'That account is already connected to another user.',
+};
+
 export function withRD(path, rd) {
   return rd ? `${path}?rd=${encodeURIComponent(rd)}` : path;
 }

@@ -84,18 +84,26 @@
   }
 
   // --- auto-add rules ---
+  const discordHint =
+    'Checked every time they sign in with Discord. To get an ID: Discord → Settings → Advanced → Developer Mode on, then right-click the server or role → Copy ID.';
   const ruleKinds = [
     { id: 'everyone', name: 'Everyone', hint: 'Every account, also new ones.' },
     { id: 'email', name: 'Email address', hint: 'One specific address, once it is verified.', placeholder: 'name@example.com' },
     { id: 'domain', name: 'Email domain', hint: 'Everyone with a verified address on this domain.', placeholder: 'example.com' },
+    { id: 'method', name: 'Login method', hint: 'Everyone who has this way of signing in on their account.' },
+    { id: 'discord_server', name: 'Discord server', hint: discordHint, placeholder: 'Server ID' },
+    { id: 'discord_role', name: 'Discord role', hint: discordHint, placeholder: 'Server ID' },
   ];
+  let ruleRole = $state('');
+  let ruleMethod = $state('discord');
   let ruleKind = $state('everyone');
   let ruleValue = $state('');
   const kind = $derived(ruleKinds.find((k) => k.id === ruleKind));
 
   async function addRule(e, g) {
     e.preventDefault();
-    if (await run(api(`/admin/groups/${g.id}/rules`, { kind: ruleKind, value: ruleValue }), 'Rule added. Matching users are in the group now.')) ruleValue = '';
+    const value = ruleKind === 'method' ? ruleMethod : ruleKind === 'discord_role' ? `${ruleValue.trim()}:${ruleRole.trim()}` : ruleValue;
+    if (await run(api(`/admin/groups/${g.id}/rules`, { kind: ruleKind, value }), 'Rule added. Matching users are in the group now.')) ruleValue = ruleRole = '';
   }
 
   const removeRule = (r) => run(api(`/admin/rules/${r.id}`, undefined, 'DELETE'), 'Rule removed.');
@@ -105,7 +113,7 @@
       everyone: 'Everyone',
       email: `Email is ${r.value}`,
       domain: `Email ends with @${r.value}`,
-      method: `Signs in with ${r.value}`,
+      method: `Can sign in with ${{ discord: 'Discord', google: 'Google', password: 'a password' }[r.value] || r.value}`,
       discord_server: `In Discord server ${r.value}`,
       discord_role: `Has Discord role ${r.value.split(':')[1]} in server ${r.value.split(':')[0]}`,
     })[r.kind] || r.kind;
@@ -317,8 +325,17 @@
                 <select bind:value={ruleKind} class={select} aria-label="Kind of rule">
                   {#each ruleKinds as k}<option value={k.id}>{k.name}</option>{/each}
                 </select>
-                {#if kind.placeholder}
-                  <input class={input} bind:value={ruleValue} placeholder={kind.placeholder} autocapitalize="off" spellcheck="false" required aria-label="Value" />
+                {#if ruleKind === 'method'}
+                  <select bind:value={ruleMethod} class={select} aria-label="Login method">
+                    <option value="discord">Discord</option>
+                    <option value="google">Google</option>
+                    <option value="password">Username and password</option>
+                  </select>
+                {:else if kind.placeholder}
+                  <input class={input} bind:value={ruleValue} placeholder={kind.placeholder} autocapitalize="off" spellcheck="false" required aria-label={kind.placeholder} />
+                {/if}
+                {#if ruleKind === 'discord_role'}
+                  <input class={input} bind:value={ruleRole} placeholder="Role ID" autocapitalize="off" spellcheck="false" required aria-label="Role ID" />
                 {/if}
                 <button type="submit" class="{btnGhost} shrink-0" disabled={busy}>Add rule</button>
               </form>

@@ -195,6 +195,9 @@ func cleanupSessions(ctx context.Context, st *store.Store, log *slog.Logger) {
 			if err := st.DeleteExpiredTokens(ctx); err != nil {
 				log.Error("token cleanup", "err", err)
 			}
+			if err := st.DeleteExpiredPending(ctx); err != nil {
+				log.Error("pending sign-up cleanup", "err", err)
+			}
 		}
 	}
 }

@@ -6,7 +6,8 @@
   import PasswordRules from '../components/PasswordRules.svelte';
   import { api } from '../lib/api.js';
   import { passwordRules } from '../lib/password.js';
-  import { link, currentRD, withRD, siteInfo } from '../lib/state.svelte.js';
+  import { app, link, currentRD, withRD, siteInfo } from '../lib/state.svelte.js';
+  import ProviderButtons from '../components/ProviderButtons.svelte';
 
   const rd = currentRD();
   let site = $state({ known: false });
@@ -91,6 +92,13 @@
       <SubmitButton {busy}>Create account</SubmitButton>
     </div>
   </form>
+
+  {#if app.session?.providers?.length}
+    <div class="my-5 flex items-center gap-3 text-xs text-zinc-500">
+      <span class="h-px flex-1 bg-zinc-800"></span>or<span class="h-px flex-1 bg-zinc-800"></span>
+    </div>
+    <ProviderButtons {rd} />
+  {/if}
 
   {#snippet footer()}
     Already have an account?

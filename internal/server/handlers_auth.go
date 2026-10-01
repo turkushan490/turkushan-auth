@@ -37,6 +37,7 @@ func (s *Server) handleSession(w http.ResponseWriter, r *http.Request) {
 		s.log.Error("load appearance", "err", err)
 	}
 	resp["appearance"] = s.appearanceJSON(a)
+	resp["providers"] = s.enabledProviders(r.Context())
 	if u := s.currentUser(r); u != nil {
 		resp["authenticated"] = true
 		user := userJSON(u)
@@ -46,6 +47,15 @@ func (s *Server) handleSession(w http.ResponseWriter, r *http.Request) {
 		} else {
 			user["staff"] = rights.Staff()
 		}
+		logins := []string{}
+		if idents, err := s.store.ListIdentities(r.Context(), u.ID); err != nil {
+			s.log.Error("load logins", "err", err)
+		} else {
+			for _, i := range idents {
+				logins = append(logins, i.Provider)
+			}
+		}
+		user["logins"] = logins
 		resp["user"] = user
 	}
 	writeJSON(w, http.StatusOK, resp)

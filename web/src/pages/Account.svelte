@@ -5,11 +5,37 @@
   import PasswordRules from '../components/PasswordRules.svelte';
   import { api } from '../lib/api.js';
   import { passwordRules } from '../lib/password.js';
-  import { app, link, refreshSession, toast } from '../lib/state.svelte.js';
+  import { app, link, refreshSession, toast, oauthErrors } from '../lib/state.svelte.js';
+  import ProviderButtons from '../components/ProviderButtons.svelte';
 
   const user = $derived(app.session.user);
 
-  let open = $state(''); // 'email' | 'password' | ''
+  let open = $state(''); // 'email' | 'password' | 'logins' | ''
+
+  // Coming back from connecting Discord/Google.
+  const query = new URLSearchParams(location.search);
+  const providerNames = { discord: 'Discord', google: 'Google' };
+  if (query.get('connected')) {
+    toast(`${providerNames[query.get('connected')] || 'Account'} is connected.`);
+    open = 'logins';
+    history.replaceState({}, '', '/');
+  } else if (query.get('oauth_error')) {
+    toast(oauthErrors[query.get('oauth_error')] || 'That did not work.', 'error');
+    open = 'logins';
+    history.replaceState({}, '', '/');
+  }
+
+  const logins = $derived(user.logins || []);
+  const canConnect = $derived((app.session.providers || []).filter((p) => !logins.includes(p)));
+
+  async function disconnect(p) {
+    if (!confirm(`Disconnect ${providerNames[p]}? You can't sign in with it anymore.`)) return;
+    busy = true;
+    const r = await api(`/account/logins/${p}`, undefined, 'DELETE');
+    busy = false;
+    toast(r.ok ? r.data.message : r.data.error, r.ok ? 'success' : 'error');
+    if (r.ok) refreshSession();
+  }
   let busy = $state(false);
   let error = $state('');
 
@@ -158,6 +184,34 @@
         {/if}
       </div>
     </div>
+
+    {#if logins.length || canConnect.length}
+      <div class="-mt-5 border-b border-zinc-800 py-1">
+        <button type="button" class={sectionBtn} onclick={() => toggle('logins')} aria-expanded={open === 'logins'}>
+          Sign-in methods
+          <svg viewBox="0 0 24 24" class="size-4 text-zinc-500 transition {open === 'logins' ? 'rotate-180' : ''}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+        </button>
+        {#if open === 'logins'}
+          <div class="space-y-3 pb-4 pt-2">
+            <ul class="divide-y divide-zinc-800 rounded-lg border border-zinc-800 text-sm">
+              <li class="flex items-center justify-between gap-3 px-3 py-2.5">
+                <span>Username and password</span>
+                <span class="text-xs {user.has_password ? 'text-emerald-400' : 'text-zinc-500'}">{user.has_password ? 'on' : 'no password set'}</span>
+              </li>
+              {#each logins as p}
+                <li class="flex items-center justify-between gap-3 px-3 py-2.5">
+                  <span>{providerNames[p]} <span class="text-xs text-emerald-400">· connected</span></span>
+                  <button type="button" class="text-xs font-medium text-zinc-400 hover:text-rose-300 disabled:opacity-60" disabled={busy} onclick={() => disconnect(p)}>Disconnect</button>
+                </li>
+              {/each}
+            </ul>
+            {#if canConnect.length}
+              <ProviderButtons link only={canConnect} verb="Connect" />
+            {/if}
+          </div>
+        {/if}
+      </div>
+    {/if}
 
     <div class="space-y-2">
       {#if user.staff}

@@ -31,6 +31,7 @@ Found a problem? Open a [GitHub issue](https://github.com/turkushan490/turkushan
 | Deny by default | hosts that aren't registered as a site get 403, even for signed-in users | `internal/server/forward.go` | `TestForwardAuth` |
 | Blocked users are out immediately | blocking deletes all their sessions; blocked accounts can't log in | `internal/store/admin.go` | `TestBlockedUserCannotLogin`, `TestAdminAPI` |
 | No nginx config injection | site upstreams must be a plain `http(s)://host[:port]` without `; { } $ ' "` or whitespace; a site can't point at itself or at the portal | `internal/server/admin.go` | `TestAdminAPI` |
+| Discord/Google login | one-time `state` in an HttpOnly cookie, bound to the provider, checked on return (no login CSRF, no replay); the code is exchanged server-side with the client secret; an existing account is only matched on an address that both sides verified; a provider account can be linked to one user only; blocked users stay out; the client secret is never sent to the browser | `internal/server/oauth.go` | `TestOAuthStateAndErrors`, `TestOAuthLinking`, `TestOAuthNewUser`, `TestOAuthSettings` |
 | Safe uploads | logo/background: admin only, size limits, type taken from the file content (images only), fixed file names in `/data/branding`; served with a sandbox CSP so an SVG can't run scripts | `internal/server/appearance.go` | `TestAppearance` |
 | No SSRF via settings | the Discord webhook must be a real `discord.com/api/webhooks/…` URL | `internal/notify/discord.go` | `TestValidDiscordWebhook` |
 | Browser hardening | CSP (`default-src 'self'`, no inline scripts), `frame-ancestors 'none'`, `X-Frame-Options`, `nosniff`, `Referrer-Policy`, COOP, `Permissions-Policy`, HSTS on https; the frontend never renders raw HTML | `internal/server/server.go` | `TestSPA` |
@@ -44,6 +45,7 @@ Found a problem? Open a [GitHub issue](https://github.com/turkushan490/turkushan
 - **Short passwords are allowed** (6 characters with a capital and a symbol). Rate limits and the lockout make guessing slow, but longer is still better.
 - **Registration is open.** New accounts can't open anything until the admin approves them (unless a site is set to "open for everyone signed in"), and sign-ups are limited to 5 per hour per IP.
 - **The portal port (3010) is reachable on the LAN.** The forward-auth endpoint only reveals the caller's own access status. Firewall the port if your LAN is not trusted.
+- **Signing in with Discord or Google trusts them.** Whoever controls someone's Discord/Google account can get into the portal account connected to it. Discord role and server rules are only re-checked when the person signs in with Discord again.
 - **Logout can be triggered by a link** from another site. It only signs you out, it can't do anything else.
 
 ## Tips for the owner

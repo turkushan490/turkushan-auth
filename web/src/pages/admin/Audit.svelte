@@ -29,6 +29,7 @@
     'settings.portal_url': 'Portal address changed',
     'settings.discord_webhook': 'Discord webhook changed',
     'settings.mail': 'Email settings changed',
+    'settings.login': 'Login method changed',
     'settings.test_mail': 'Test mail sent',
     'appearance.update': 'Appearance changed',
     'appearance.logo': 'Logo changed',

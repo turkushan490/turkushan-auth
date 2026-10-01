@@ -4,7 +4,8 @@
   import SubmitButton from '../components/SubmitButton.svelte';
   import Alert from '../components/Alert.svelte';
   import { api } from '../lib/api.js';
-  import { app, link, currentRD, withRD, siteInfo } from '../lib/state.svelte.js';
+  import { app, link, currentRD, withRD, siteInfo, oauthErrors } from '../lib/state.svelte.js';
+  import ProviderButtons from '../components/ProviderButtons.svelte';
 
   const rd = currentRD();
   let site = $state({ known: false });
@@ -14,7 +15,7 @@
 
   let username = $state('');
   let password = $state('');
-  let error = $state('');
+  let error = $state(oauthErrors[new URLSearchParams(location.search).get('oauth_error')] || '');
   let busy = $state(false);
 
   async function submit(e) {
@@ -51,6 +52,13 @@
       <SubmitButton {busy}>Sign in</SubmitButton>
     </div>
   </form>
+
+  {#if app.session?.providers?.length}
+    <div class="my-5 flex items-center gap-3 text-xs text-zinc-500">
+      <span class="h-px flex-1 bg-zinc-800"></span>or<span class="h-px flex-1 bg-zinc-800"></span>
+    </div>
+    <ProviderButtons {rd} />
+  {/if}
 
   {#snippet footer()}
     No account yet?

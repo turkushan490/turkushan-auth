@@ -15,7 +15,7 @@
   <Category>Security: Network:Proxy</Category>
   <ExtraSearchTerms>auth sso login forward-auth nginx proxy manager npm auth_request tinyauth authelia</ExtraSearchTerms>
   <Requires>Nginx Proxy Manager (or nginx with auth_request) and a domain with HTTPS.</Requires>
-  <Changes>Admin panel, forward auth, per-site approval and verified-email rules, email (verify + password reset), Discord notifications, reset-password recovery command.</Changes>
+  <Changes>Groups with site access and panel rights, auto-add rules, several admins, create or invite users, sign in with Discord or Google, appearance (logo, colors, font, background), email verification and password reset.</Changes>
   <Date>2026-10-01</Date>
   <Beta>true</Beta>
   <MinVer>6.12</MinVer>

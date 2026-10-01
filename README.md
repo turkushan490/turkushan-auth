@@ -8,6 +8,7 @@ Everything runs in **one container**: a Go backend and a Svelte frontend in a si
 ## Features
 
 - **Sign in, create account, forgot password**: dark, mobile-friendly pages
+- **Continue with Discord or Google** (optional), with auto-add rules by Discord server or role
 - **Single sign-on** across `*.your-domain` with one session cookie
 - **Per site:** "needs approval" or "open for everyone signed in", and optionally "needs a verified email"
 - **Back to where you were:** after signing in, visitors land on the page they opened

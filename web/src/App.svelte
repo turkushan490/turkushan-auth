@@ -11,6 +11,7 @@
   import Forgot from './pages/Forgot.svelte';
   import Reset from './pages/Reset.svelte';
   import Verify from './pages/Verify.svelte';
+  import Welcome from './pages/Welcome.svelte';
   import Toast from './components/Toast.svelte';
 
   refreshSession();
@@ -30,6 +31,7 @@
     if (path === '/forgot') return 'forgot';
     if (path === '/reset') return 'reset';
     if (path === '/verify') return 'verify';
+    if (path === '/welcome') return 'welcome';
     if (!signedIn) return 'login';
     if (path === '/pending') return 'pending';
     if (path === '/admin' || path.startsWith('/admin/')) return 'admin';
@@ -58,6 +60,8 @@
   <Reset />
 {:else if page === 'verify'}
   <Verify />
+{:else if page === 'welcome'}
+  <Welcome />
 {:else if page === 'pending'}
   <Pending />
 {:else if page === 'admin'}

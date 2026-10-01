@@ -35,6 +35,33 @@
     if (ok) smtpPassword = '';
   }
 
+  // Sign in with Discord / Google. Secrets are never sent to the browser; empty keeps the saved one.
+  const oauth0 = untrack(() => data.settings.oauth);
+  let oauthDraft = $state(Object.fromEntries(Object.entries(oauth0).map(([name, o]) => [name, { client_id: o.client_id, client_secret: '' }])));
+  let howTo = $state('');
+  const oauthOrder = ['discord', 'google'];
+
+  async function saveLogin(e, name) {
+    e.preventDefault();
+    const label = data.settings.oauth[name].label;
+    if (await save({ oauth: { [name]: oauthDraft[name] } }, `Sign in with ${label} is on.`, 'oauth-' + name)) oauthDraft[name].client_secret = '';
+  }
+
+  async function removeLogin(name) {
+    const label = data.settings.oauth[name].label;
+    if (!confirm(`Turn off sign in with ${label}? People who only use ${label} can't sign in until you turn it back on.`)) return;
+    if (await save({ oauth: { [name]: { remove: true } } }, `Sign in with ${label} is off.`, 'oauth-' + name)) oauthDraft[name] = { client_id: '', client_secret: '' };
+  }
+
+  async function copy(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast('Copied.');
+    } catch {
+      toast('Could not copy. Select the text and copy it yourself.', 'error');
+    }
+  }
+
   async function testMail(e) {
     e.preventDefault();
     busy = 'testmail';
@@ -154,6 +181,77 @@
         <button type="submit" class="{btnGhost} shrink-0" disabled={busy !== ''}>{busy === 'testmail' ? 'Sending…' : 'Send test mail'}</button>
       </form>
     {/if}
+  </section>
+
+  <section class="{card} p-5 sm:p-6">
+    <h2 class="font-semibold">Sign in with Discord or Google</h2>
+    <p class="mt-1 text-sm text-zinc-400">
+      Adds "Continue with …" buttons to the sign-in page. New people still need approval or a group before they can open a site.
+    </p>
+
+    <div class="mt-4 space-y-4">
+      {#each oauthOrder.filter((n) => data.settings.oauth[n]) as name}
+        {@const o = data.settings.oauth[name]}
+        {@const on = o.client_id && o.secret_set}
+        <form class="rounded-lg border border-zinc-800 p-4" onsubmit={(e) => saveLogin(e, name)}>
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h3 class="font-medium">{o.label}</h3>
+            {#if on}
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-medium text-emerald-300 ring-1 ring-emerald-500/25">
+                <span class="size-1.5 rounded-full bg-emerald-400"></span> On
+              </span>
+            {:else}
+              <span class="rounded-full bg-zinc-800 px-2.5 py-1 text-xs font-medium text-zinc-400">Off</span>
+            {/if}
+          </div>
+
+          <div class="mt-3">
+            <span class={label}>Redirect URL <span class="text-xs font-normal text-zinc-500">(paste this at {o.label})</span></span>
+            <div class="flex gap-2">
+              <input class="{input} font-mono text-xs" value={o.redirect_uri} readonly onfocus={(e) => e.currentTarget.select()} aria-label="Redirect URL for {o.label}" />
+              <button type="button" class="{btnGhost} shrink-0" onclick={() => copy(o.redirect_uri)}>Copy</button>
+            </div>
+          </div>
+          <div class="mt-3 grid gap-3 sm:grid-cols-2">
+            <div>
+              <label class={label} for="oauth-id-{name}">Client ID</label>
+              <input id="oauth-id-{name}" class={input} bind:value={oauthDraft[name].client_id} autocomplete="off" autocapitalize="off" spellcheck="false" required />
+            </div>
+            <div>
+              <label class={label} for="oauth-secret-{name}">Client secret</label>
+              <input id="oauth-secret-{name}" type="password" class={input} bind:value={oauthDraft[name].client_secret} autocomplete="new-password"
+                placeholder={o.secret_set ? '•••••••• saved, leave empty to keep' : ''} required={!o.secret_set} />
+            </div>
+          </div>
+
+          <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
+            <button type="button" class="text-sm font-medium text-indigo-400 hover:text-indigo-300" onclick={() => (howTo = howTo === name ? '' : name)}>
+              {howTo === name ? 'Hide' : 'How do I get these?'}
+            </button>
+            <div class="flex gap-2">
+              {#if o.client_id}<button type="button" class={btnDanger} onclick={() => removeLogin(name)} disabled={busy !== ''}>Turn off</button>{/if}
+              <button type="submit" class={btnPrimary} disabled={busy !== ''}>{busy === 'oauth-' + name ? 'Saving…' : 'Save'}</button>
+            </div>
+          </div>
+
+          {#if howTo === name}
+            <ol class="mt-3 list-decimal space-y-1.5 rounded-lg bg-zinc-950/50 p-4 pl-8 text-sm text-zinc-300">
+              {#if name === 'discord'}
+                <li>Go to <span class="font-mono text-xs">discord.com/developers/applications</span> and click <b>New Application</b>.</li>
+                <li>Open <b>OAuth2</b> in the menu. Under <b>Redirects</b>, click <b>Add Redirect</b> and paste the Redirect URL from above. Save.</li>
+                <li>Copy the <b>Client ID</b>. Click <b>Reset Secret</b> and copy the <b>Client Secret</b>.</li>
+                <li>Paste both here and click Save.</li>
+              {:else}
+                <li>Go to <span class="font-mono text-xs">console.cloud.google.com</span>, make a project, and open <b>APIs &amp; Services → OAuth consent screen</b>. Choose <b>External</b>, fill in the app name and your email, and publish the app.</li>
+                <li>Open <b>Credentials → Create credentials → OAuth client ID</b>, type <b>Web application</b>.</li>
+                <li>Under <b>Authorized redirect URIs</b>, add the Redirect URL from above. Create.</li>
+                <li>Copy the <b>Client ID</b> and <b>Client secret</b>, paste them here and click Save.</li>
+              {/if}
+            </ol>
+          {/if}
+        </form>
+      {/each}
+    </div>
   </section>
 
   <section class="{card} p-5 sm:p-6">

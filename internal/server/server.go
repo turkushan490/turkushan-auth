@@ -37,13 +37,22 @@ type Server struct {
 	forgotPerIP    *ratelimit.Limiter
 	forgotPerLogin *ratelimit.Limiter
 	tokenPerIP     *ratelimit.Limiter // attempts with links from mails
+
+	oauth     map[string]*oauthProvider // "Continue with Discord/Google"
+	oauthHTTP *http.Client
 }
 
 // New returns the portal's HTTP handler. dist is the built web app.
 func New(cfg *config.Config, st *store.Store, log *slog.Logger, dist fs.FS) (http.Handler, error) {
+	_, h, err := build(cfg, st, log, dist)
+	return h, err
+}
+
+// build also returns the Server itself, so tests can reach into it.
+func build(cfg *config.Config, st *store.Store, log *slog.Logger, dist fs.FS) (*Server, http.Handler, error) {
 	index, err := fs.ReadFile(dist, "index.html")
 	if err != nil {
-		return nil, fmt.Errorf("web build is missing index.html: %w", err)
+		return nil, nil, fmt.Errorf("web build is missing index.html: %w", err)
 	}
 	base := strings.TrimPrefix(cfg.CookieDomain, ".")
 	if base == "" {
@@ -60,6 +69,8 @@ func New(cfg *config.Config, st *store.Store, log *slog.Logger, dist fs.FS) (htt
 		forgotPerIP:    ratelimit.New(5, time.Hour),
 		forgotPerLogin: ratelimit.New(3, time.Hour),
 		tokenPerIP:     ratelimit.New(30, time.Hour),
+		oauth:          defaultOAuthProviders(),
+		oauthHTTP:      &http.Client{Timeout: 15 * time.Second},
 	}
 
 	r := chi.NewRouter()
@@ -86,6 +97,11 @@ func New(cfg *config.Config, st *store.Store, log *slog.Logger, dist fs.FS) (htt
 			r.Post("/verify-email", s.handleVerifyEmail)
 			r.Post("/password/forgot", s.handleForgotPassword)
 			r.Post("/password/reset", s.handleResetPassword)
+			r.Get("/oauth/{provider}/start", s.handleOAuthStart)
+			r.Get("/oauth/{provider}/callback", s.handleOAuthCallback)
+			r.Get("/oauth/pending", s.handleOAuthPending)
+			r.Post("/oauth/complete", s.handleOAuthComplete)
+			r.Delete("/account/logins/{provider}", s.handleUnlinkLogin)
 
 			r.Route("/admin", func(r chi.Router) {
 				r.Use(s.requireStaff)
@@ -127,7 +143,7 @@ func New(cfg *config.Config, st *store.Store, log *slog.Logger, dist fs.FS) (htt
 	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusMethodNotAllowed, "Method not allowed.")
 	})
-	return r, nil
+	return s, r, nil
 }
 
 func (s *Server) healthz(w http.ResponseWriter, r *http.Request) {

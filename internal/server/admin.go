@@ -210,6 +210,18 @@ func (s *Server) handleAdminData(w http.ResponseWriter, r *http.Request) {
 		if fail(err) {
 			return
 		}
+		logins := map[string]any{}
+		for name, p := range s.oauth {
+			id, secret, err := s.oauthCreds(ctx, name)
+			if fail(err) {
+				return
+			}
+			logins[name] = map[string]any{ // the secret itself is never sent back
+				"label": p.label, "client_id": id, "secret_set": secret != "",
+				"redirect_uri": s.oauthRedirectURI(name),
+			}
+		}
+		settings["oauth"] = logins
 		settings["discord_webhook_set"] = webhook != ""
 		settings["smtp"] = map[string]any{ // the password itself is never sent back
 			"host":         mc.Host,
@@ -570,6 +582,12 @@ type settingsInput struct {
 	PortalURL      *string `json:"portal_url"`
 	DiscordWebhook *string `json:"discord_webhook"` // "" removes it
 	mailSettingsInput
+	// OAuth is keyed by provider (discord, google). An empty secret keeps the saved one.
+	OAuth map[string]struct {
+		ClientID     string `json:"client_id"`
+		ClientSecret string `json:"client_secret"`
+		Remove       bool   `json:"remove"`
+	} `json:"oauth"`
 }
 
 func (in settingsInput) hasMail() bool {
@@ -625,6 +643,35 @@ func (s *Server) handleUpdateSettings(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		s.audit(r, "settings.mail", "", "")
+	}
+	for name, o := range in.OAuth {
+		p := s.oauth[name]
+		if p == nil {
+			writeError(w, http.StatusBadRequest, "Unknown login method.")
+			return
+		}
+		id, secret := strings.TrimSpace(o.ClientID), strings.TrimSpace(o.ClientSecret)
+		if o.Remove {
+			id, secret = "", ""
+		} else if id == "" || len(id) > 200 || len(secret) > 200 || strings.ContainsAny(id+secret, " \t\r\n") {
+			writeError(w, http.StatusBadRequest, "Fill in the client ID from "+p.label+".")
+			return
+		}
+		if err := s.store.SetSetting(ctx, oauthIDKey(name), id); err != nil {
+			s.serverError(w, r, err)
+			return
+		}
+		if secret != "" || o.Remove {
+			if err := s.store.SetSetting(ctx, oauthSecretKey(name), secret); err != nil {
+				s.serverError(w, r, err)
+				return
+			}
+		}
+		detail := "set up"
+		if o.Remove {
+			detail = "removed"
+		}
+		s.audit(r, "settings.login", p.label, detail)
 	}
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }

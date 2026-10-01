@@ -12,9 +12,10 @@ The examples use `example.com`. Replace it with your own domain.
 - [5. Approving users](#5-approving-users)
 - [6. Groups, rights and more admins](#6-groups-rights-and-more-admins)
 - [7. Email (verification and password reset)](#7-email-verification-and-password-reset)
-- [8. Discord notifications](#8-discord-notifications)
-- [9. Make it yours: logo, colors and background](#9-make-it-yours-logo-colors-and-background)
-- [10. Updates, backups and recovery](#10-updates-backups-and-recovery)
+- [8. Sign in with Discord or Google](#8-sign-in-with-discord-or-google)
+- [9. Discord notifications](#9-discord-notifications)
+- [10. Make it yours: logo, colors and background](#10-make-it-yours-logo-colors-and-background)
+- [11. Updates, backups and recovery](#11-updates-backups-and-recovery)
 - [Troubleshooting](#troubleshooting)
 
 ---
@@ -108,7 +109,7 @@ The admin panel has seven tabs:
 | **Groups** | Groups with site access and panel rights, auto-add rules, and the built-in Admins group. |
 | **Sites** | Add sites, choose the rules, copy the NPM config. |
 | **Appearance** | Logo, site name, colors, font and background. |
-| **Settings** | Portal address, email, Discord. |
+| **Settings** | Portal address, email, sign in with Discord/Google, Discord notifications. |
 | **Audit log** | Every admin action with time, admin and IP. |
 
 ---
@@ -165,7 +166,7 @@ Sites that are **not** in the Sites list are denied for everyone. That way a for
 ## 5. Approving users
 
 1. Someone creates an account at `auth.example.com` and opens a site that needs approval.
-2. They see **Waiting for approval**. You see the request in **Admin panel → Requests** (and get a Discord message, see step 8).
+2. They see **Waiting for approval**. You see the request in **Admin panel → Requests** (and get a Discord message, see step 9).
 3. Click **Approve**. They can open the site right away (**Check again** on their page, or just reload the site).
 
 You can also give access up front: **Users** → click the user → **Give access** next to the site. Revoking works the same way, and takes effect on their next page load.
@@ -187,7 +188,7 @@ Admin panel → **Groups** → **New group**, then open the group:
 | **Members** | Add or remove people. "by rule" means an auto-add rule put them there. |
 | **Sites** | Per site: **Can open** (members get in without asking) and **Can approve** (members may approve or deny requests for that site, a moderator for just that site). |
 | **Rights in the admin panel** | Approve requests (all sites) · Manage users · Manage groups & rules · Manage sites · Settings · Appearance · View audit log. |
-| **Auto-add rules** | Who is put in the group automatically: **Everyone**, a specific **email address**, or everyone on an **email domain** (verified addresses only). |
+| **Auto-add rules** | Who is put in the group automatically: **Everyone**, a specific **email address**, everyone on an **email domain** (verified addresses only), or by **login method**, **Discord server** or **Discord role** (see step 8). |
 
 How it works:
 
@@ -282,7 +283,49 @@ Also check in Resend → Domains → your domain → **Configuration** that **cl
 
 ---
 
-## 8. Discord notifications
+## 8. Sign in with Discord or Google
+
+Adds **Continue with Discord** and **Continue with Google** buttons to the sign-in page. Both are optional and free. Set them up in Admin panel → **Settings → Sign in with Discord or Google**. Each has a **Redirect URL** there with a Copy button; you need it below.
+
+### 8.1 Discord
+
+1. Go to [discord.com/developers/applications](https://discord.com/developers/applications) → **New Application** → give it a name (people see this name when they sign in).
+2. Open **OAuth2** in the left menu. Under **Redirects**, click **Add Redirect** and paste the Redirect URL from the portal (`https://auth.example.com/api/oauth/discord/callback`). **Save Changes**.
+3. Copy the **Client ID**. Click **Reset Secret** and copy the **Client Secret** (you only see it once).
+4. In the portal, paste both under **Discord** and click **Save**.
+
+### 8.2 Google
+
+1. Go to [console.cloud.google.com](https://console.cloud.google.com) and create a project.
+2. **APIs & Services → OAuth consent screen**: choose **External**, fill in an app name and your email address, save, and **publish** the app (otherwise only test users you add can sign in).
+3. **APIs & Services → Credentials → Create credentials → OAuth client ID**, application type **Web application**.
+4. Under **Authorized redirect URIs**, add the Redirect URL from the portal (`https://auth.example.com/api/oauth/google/callback`). **Create**.
+5. Copy the **Client ID** and **Client secret**, paste them in the portal under **Google** and click **Save**.
+
+### 8.3 How it works for users
+
+- **First time:** after Discord/Google they see **Almost there**: choose a username and, if they want, a password. Or **Skip**: they get a suggested username and no password, and keep signing in with Discord/Google.
+- **Already have an account?** If the verified email at Discord/Google is the same as the verified email on an account, they're signed in to that account. No second account is made.
+- **Account page → Sign-in methods:** connect or disconnect Discord/Google, and set a password later. The last way to sign in can't be removed.
+- New accounts made this way still need approval or a group before they can open a site, like every other account.
+
+### 8.4 Auto-add rules for Discord and Google
+
+In **Groups → (a group) → Auto-add rules** there are three more kinds:
+
+| Rule | Who is added |
+|---|---|
+| **Login method** | Everyone who has Discord, Google or a password on their account. |
+| **Discord server** | Everyone who is a member of your Discord server. |
+| **Discord role** | Everyone who has a certain role in your Discord server. |
+
+For the Discord rules you paste the **server ID** and **role ID**: in Discord, turn on **Settings → Advanced → Developer Mode**, then right-click the server icon or the role → **Copy ID**.
+
+Server and role membership are checked **every time someone signs in with Discord**. Take a role away in Discord and they leave the group at their next Discord sign-in. The first time after you add such a rule, people are asked by Discord for permission to share their server roles. No bot is needed.
+
+---
+
+## 9. Discord notifications
 
 Get a message when someone creates an account or asks for access to a site.
 
@@ -291,7 +334,7 @@ Get a message when someone creates an account or asks for access to a site.
 
 ---
 
-## 9. Make it yours: logo, colors and background
+## 10. Make it yours: logo, colors and background
 
 Admin panel → **Appearance**. Everything you change shows right away as a preview on the page and in the small sign-in preview; it goes live for everyone when you click **Save**.
 
@@ -314,7 +357,7 @@ Tips:
 
 ---
 
-## 10. Updates, backups and recovery
+## 11. Updates, backups and recovery
 
 **Updates:** every change to the project builds a new `latest` image. Unraid shows **update ready** on the Docker tab; click it to update. Your data stays.
 
@@ -345,6 +388,8 @@ This sets the new password, unlocks and unblocks the account, and signs it out e
 | Can't sign in via `http://<ip>:3010` | Expected: sign in via `https://auth.example.com`. |
 | **"Security token missing or expired"** | Reload the page. Happens after the browser cleared cookies while the page was open. |
 | **"Too many attempts"** | Rate limit: wait a minute. After 5 wrong passwords an account is locked for 15 minutes; an admin can **Unlock** it in **Users**. |
+| Discord/Google: **redirect_uri mismatch / invalid redirect** | The Redirect URL at Discord/Google isn't exactly the one shown in Settings. Copy it again, including `https://` and without a trailing slash. |
+| Google: **"Access blocked"** or only you can sign in | The Google app is still in testing. Publish it on the OAuth consent screen. |
 | Test mail: **"domain is not verified"** | Resend hasn't verified your domain yet. Check the DNS records and click **Verify** in Resend. |
 | Test mail: **login failed** | Wrong API key. Create a new one in Resend and paste it again. |
 | Mails land in **Junk** | New domains need to build reputation. Use `auth@` instead of `noreply@`, turn off tracking in Resend, and mark the mail as "not junk". |
