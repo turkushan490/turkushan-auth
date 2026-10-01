@@ -110,8 +110,7 @@ func TestFirstEmailNeedsNoPasswordAndLinkContinuesToSite(t *testing.T) {
 	}
 	_, text := srv.Last(t)
 	if !strings.Contains(text, "&rd=https%3A%2F%2Fmail.example.com%2Fpage%3Fx%3D1") {
-		t.Errorf("verification link has no rd:
-%s", text)
+		t.Errorf("verification link has no rd:\n%s", text)
 	}
 	// A typo can be corrected without the password too, as long as nothing is verified.
 	if code, _ := c.post("/api/account/email", map[string]string{"email": "eva2@example.com", "rd": "https://evil.com/"}); code != http.StatusOK {
