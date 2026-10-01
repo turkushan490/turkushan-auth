@@ -73,6 +73,60 @@ func (s *Server) enabledProviders(ctx context.Context) []string {
 	return out
 }
 
+// ensureProviderGroup makes, once per provider, a group named after it ("Discord",
+// "Google") that everyone who signs in that way is put in automatically. The
+// admin then only has to tick what the group may open. It is not made again
+// after the admin deletes it.
+func (s *Server) ensureProviderGroup(ctx context.Context, p *oauthProvider) error {
+	flag := "oauth_" + p.name + "_group_made"
+	if done, err := s.store.Setting(ctx, flag); err != nil || done != "" {
+		return err
+	}
+	rules, err := s.store.ListRules(ctx)
+	if err != nil {
+		return err
+	}
+	exists := false
+	for _, r := range rules {
+		if r.Kind == store.RuleMethod && r.Value == p.name {
+			exists = true // the admin already made such a rule
+		}
+	}
+	if !exists {
+		id, err := s.store.CreateGroup(ctx, p.label, "Everyone who signs in with "+p.label+".")
+		if errors.Is(err, store.ErrGroupNameTaken) {
+			groups, lerr := s.store.ListGroups(ctx)
+			if lerr != nil {
+				return lerr
+			}
+			for _, g := range groups {
+				if strings.EqualFold(g.Name, p.label) {
+					id, err = g.ID, nil
+				}
+			}
+		}
+		if err != nil {
+			return err
+		}
+		if _, err := s.store.CreateRule(ctx, id, store.RuleMethod, p.name); err != nil {
+			return err
+		}
+		if err := s.store.SyncAllRuleGroups(ctx); err != nil {
+			return err
+		}
+	}
+	return s.store.SetSetting(ctx, flag, "1")
+}
+
+// ensureProviderGroups runs at start-up for the logins that are already on.
+func (s *Server) ensureProviderGroups(ctx context.Context) {
+	for _, name := range s.enabledProviders(ctx) {
+		if err := s.ensureProviderGroup(ctx, s.oauth[name]); err != nil {
+			s.log.Error("create login group", "provider", name, "err", err)
+		}
+	}
+}
+
 func (s *Server) oauthRedirectURI(name string) string {
 	return s.cfg.AppURL.String() + "/api/oauth/" + name + "/callback"
 }

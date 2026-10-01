@@ -5,6 +5,7 @@
   import Modal from '../../components/Modal.svelte';
   import Field from '../../components/Field.svelte';
   import PasswordRules from '../../components/PasswordRules.svelte';
+  import ProviderIcon from '../../components/ProviderIcon.svelte';
   import { card, btnApprove, btnDanger, btnGhost, btnPrimary, badge, statusBadge, input, label } from './ui.js';
   import { can, canApprove, standing, opens, groupsOf, groupsOpening, standingText, standingBadge } from './rights.js';
 
@@ -15,12 +16,16 @@
   let siteFilter = $state('');
   let groupFilter = $state(''); // group id, 'admins' or 'none'
   let statusFilter = $state('');
+  let loginFilter = $state(''); // '' | password | discord | google
   let sortBy = $state('name');
   let expanded = $state(null);
   let busy = $state(false);
 
   const filterSite = $derived(data.sites.find((s) => String(s.id) === siteFilter));
   const pendingUsers = $derived(new Set(data.access.filter((a) => a.status === 'pending').map((a) => a.user_id)));
+  // Discord/Google accounts connected to a user.
+  const loginsOf = (u) => data.identities.filter((i) => i.user_id === u.id);
+  const providerNames = { discord: 'Discord', google: 'Google' };
   const sitesOf = (u) => data.sites.filter((s) => opens(standing(data, u, s)));
 
   const statusFilters = [
@@ -43,7 +48,7 @@
     const q = search.trim().toLowerCase();
     const list = data.users.filter((u) => {
       if (q) {
-        const hay = [u.username, u.email, ...groupsOf(data, u).map((g) => g.name.toLowerCase()), u.is_admin ? 'admins' : ''];
+        const hay = [u.username, u.email, ...groupsOf(data, u).map((g) => g.name.toLowerCase()), u.is_admin ? 'admins' : '', ...loginsOf(u).map((i) => i.display.toLowerCase())];
         if (!hay.some((h) => h.includes(q))) return false;
       }
       // With a site chosen: only the people who can open it right now.
@@ -51,6 +56,8 @@
       if (groupFilter === 'admins' && !u.is_admin) return false;
       if (groupFilter === 'none' && (u.is_admin || groupsOf(data, u).length > 0)) return false;
       if (groupFilter && groupFilter !== 'admins' && groupFilter !== 'none' && !groupsOf(data, u).some((g) => String(g.id) === groupFilter)) return false;
+      if (loginFilter === 'password' && !u.has_password) return false;
+      if ((loginFilter === 'discord' || loginFilter === 'google') && !loginsOf(u).some((i) => i.provider === loginFilter)) return false;
       switch (statusFilter) {
         case 'pending':
           return pendingUsers.has(u.id);
@@ -75,10 +82,10 @@
     }[sortBy];
     return list.sort(by);
   });
-  const filtered = $derived(search || siteFilter || groupFilter || statusFilter);
+  const filtered = $derived(search || siteFilter || groupFilter || statusFilter || loginFilter);
 
   function clearFilters() {
-    search = siteFilter = groupFilter = statusFilter = '';
+    search = siteFilter = groupFilter = statusFilter = loginFilter = '';
   }
 
   // --- actions ---
@@ -190,7 +197,7 @@
   {/if}
 </div>
 
-<div class="{card} mb-4 grid gap-2 p-3 sm:grid-cols-2 lg:grid-cols-5">
+<div class="{card} mb-4 grid gap-2 p-3 sm:grid-cols-2 lg:grid-cols-6">
   <input
     type="search"
     placeholder="Search name, email or group…"
@@ -206,6 +213,12 @@
     <option value="admins">Admins</option>
     {#each data.groups as g (g.id)}<option value={String(g.id)}>{g.name}</option>{/each}
     <option value="none">Not in any group</option>
+  </select>
+  <select bind:value={loginFilter} class={select} aria-label="Filter by login type">
+    <option value="">Any login</option>
+    <option value="password">Username &amp; password</option>
+    <option value="discord">Discord</option>
+    <option value="google">Google</option>
   </select>
   <select bind:value={statusFilter} class={select} aria-label="Filter by status">
     {#each statusFilters as f}<option value={f.id}>{f.name}</option>{/each}
@@ -238,6 +251,12 @@
         <div class="min-w-0 flex-1">
           <div class="flex flex-wrap items-center gap-1.5">
             <span class="font-medium">{u.username}</span>
+            {#each loginsOf(u) as i (i.provider)}
+              <span class="inline-flex" title="{providerNames[i.provider]}{i.display ? `: ${i.display}` : ''}">
+                <ProviderIcon provider={i.provider} size="size-4" color />
+                <span class="sr-only">Connected to {providerNames[i.provider]}</span>
+              </span>
+            {/each}
             {#if isMe(u)}<span class="text-xs text-zinc-500">(you)</span>{/if}
             {#if u.is_admin}<span class="{badge} bg-indigo-500/15 text-indigo-300 ring-indigo-400/20">Admin</span>{/if}
             {#if u.status === 'blocked'}<span class="{badge} {statusBadge.denied}">Blocked</span>{/if}
@@ -346,6 +365,22 @@
               </div>
               <p class="mt-2 text-xs text-zinc-500">Deny always wins, also over a group.</p>
             {/if}
+          </div>
+
+          <div>
+            <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">Signs in with</h3>
+            <div class="flex flex-wrap items-center gap-1.5">
+              {#if u.has_password}<span class={chip}>Username &amp; password</span>{/if}
+              {#each loginsOf(u) as i (i.provider)}
+                <span class="{chip} gap-1.5">
+                  <ProviderIcon provider={i.provider} size="size-3.5" color />
+                  {providerNames[i.provider]}{i.display ? `: ${i.display}` : ''}
+                </span>
+              {/each}
+              {#if !u.has_password && loginsOf(u).length === 0}
+                <span class="text-sm text-zinc-500">No password yet (invited, waiting for them to choose one).</span>
+              {/if}
+            </div>
           </div>
 
           <div class="flex flex-wrap items-center justify-between gap-3">

@@ -215,6 +215,18 @@ func TestOAuthLinking(t *testing.T) {
 	if u := c.session()["user"].(map[string]any); u["username"] != "eva" || fmt.Sprint(u["logins"]) != "[google]" {
 		t.Errorf("auto-linked session: %v", u)
 	}
+	// The admin can see which accounts are connected to what.
+	boss := signedIn(t, h, st, "boss", true)
+	_, data := boss.do(http.MethodGet, "/api/admin/data", nil, nil)
+	idents := data["identities"].([]any)
+	if len(idents) != 1 || idents[0].(map[string]any)["provider"] != "google" || idents[0].(map[string]any)["display"] != "Eva" {
+		t.Errorf("identities in admin data: %v", idents)
+	}
+	for _, u := range data["users"].([]any) {
+		if u := u.(map[string]any); u["username"] == "eva" && u["has_password"] != true {
+			t.Errorf("has_password in user list: %v", u)
+		}
+	}
 
 	// Connecting Discord from the account page.
 	f.set(func() { f.discord = map[string]any{"id": "d-1", "username": "evagamer", "email": "other@example.com", "verified": true} })
@@ -378,6 +390,25 @@ func TestOAuthSettings(t *testing.T) {
 	if p := admin.session()["providers"].([]any); fmt.Sprint(p) != "[discord]" {
 		t.Errorf("providers: %v", p)
 	}
+	// Turning a login on makes its group once, with the rule that fills it.
+	groupCount := func() (n int) {
+		st.DB.QueryRow(`SELECT COUNT(*) FROM groups g JOIN group_rules r ON r.group_id = g.id WHERE g.name = 'Discord' AND r.kind = 'method' AND r.value = 'discord'`).Scan(&n)
+		return n
+	}
+	if groupCount() != 1 {
+		t.Fatalf("Discord group with its rule: %d", groupCount())
+	}
+	admin.put("/api/admin/settings", set)
+	if groupCount() != 1 {
+		t.Errorf("Discord group made twice: %d", groupCount())
+	}
+	// Deleted by the admin: it stays gone.
+	st.DB.Exec(`DELETE FROM groups WHERE name = 'Discord'`)
+	admin.put("/api/admin/settings", set)
+	if groupCount() != 0 {
+		t.Error("Discord group came back after the admin deleted it")
+	}
+
 	// Saving without a secret keeps it; remove turns the login off.
 	admin.put("/api/admin/settings", map[string]any{"oauth": map[string]any{"discord": map[string]string{"client_id": "456"}}})
 	if v, _ := st.Setting(context.Background(), oauthSecretKey("discord")); v != "s3cret" {

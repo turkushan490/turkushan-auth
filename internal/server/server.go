@@ -72,6 +72,7 @@ func build(cfg *config.Config, st *store.Store, log *slog.Logger, dist fs.FS) (*
 		oauth:          defaultOAuthProviders(),
 		oauthHTTP:      &http.Client{Timeout: 15 * time.Second},
 	}
+	s.ensureProviderGroups(context.Background())
 
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)

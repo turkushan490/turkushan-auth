@@ -171,6 +171,7 @@ func (s *Server) handleAdminData(w http.ResponseWriter, r *http.Request) {
 		"memberships": []store.Membership{},
 		"group_sites": []store.GroupSite{},
 		"rules":       []store.Rule{},
+		"identities":  []store.Identity{},
 		"all_perms":   store.AllPerms,
 		"mail_ready":  s.mailReady(ctx),
 		"settings":    settings,
@@ -198,7 +199,11 @@ func (s *Server) handleAdminData(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		resp["users"], resp["groups"], resp["memberships"] = users, groups, memberships
-		resp["group_sites"], resp["rules"] = groupSites, rules
+		identities, err := s.store.ListAllIdentities(ctx)
+		if fail(err) {
+			return
+		}
+		resp["group_sites"], resp["rules"], resp["identities"] = groupSites, rules, identities
 	}
 
 	if rights.Has(store.PermSettings) {
@@ -670,6 +675,8 @@ func (s *Server) handleUpdateSettings(w http.ResponseWriter, r *http.Request) {
 		detail := "set up"
 		if o.Remove {
 			detail = "removed"
+		} else if err := s.ensureProviderGroup(ctx, p); err != nil {
+			s.log.Error("create login group", "provider", name, "err", err)
 		}
 		s.audit(r, "settings.login", p.label, detail)
 	}

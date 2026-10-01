@@ -308,6 +308,9 @@ Adds **Continue with Discord** and **Continue with Google** buttons to the sign-
 - **Already have an account?** If the verified email at Discord/Google is the same as the verified email on an account, they're signed in to that account. No second account is made.
 - **Account page → Sign-in methods:** connect or disconnect Discord/Google, and set a password later. The last way to sign in can't be removed.
 - New accounts made this way still need approval or a group before they can open a site, like every other account.
+- In **Users**, a Discord or Google logo next to a name shows which accounts are connected (hover for their Discord/Google name), and the **Any login** dropdown filters on it.
+
+When you turn a login on, a group with the same name (**Discord**, **Google**) is made automatically, with the rule that puts everyone who signs in that way in it. Tick the sites that group may open and they're in right after their first sign-in. You can rename or delete the group; it isn't made again.
 
 ### 8.4 Auto-add rules for Discord and Google
 

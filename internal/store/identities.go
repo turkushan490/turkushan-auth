@@ -46,6 +46,24 @@ func (s *Store) ListIdentities(ctx context.Context, userID int64) ([]Identity, e
 	return out, rows.Err()
 }
 
+// ListAllIdentities returns every connected Discord/Google account (without provider data).
+func (s *Store) ListAllIdentities(ctx context.Context) ([]Identity, error) {
+	rows, err := s.DB.QueryContext(ctx, `SELECT provider, user_id, email, display FROM identities ORDER BY provider`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []Identity{}
+	for rows.Next() {
+		var i Identity
+		if err := rows.Scan(&i.Provider, &i.UserID, &i.Email, &i.Display); err != nil {
+			return nil, err
+		}
+		out = append(out, i)
+	}
+	return out, rows.Err()
+}
+
 func (s *Store) DeleteIdentity(ctx context.Context, userID int64, provider string) error {
 	_, err := s.DB.ExecContext(ctx, `DELETE FROM identities WHERE user_id = ? AND provider = ?`, userID, provider)
 	return err

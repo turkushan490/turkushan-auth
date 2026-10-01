@@ -11,6 +11,7 @@ type UserSummary struct {
 	EmailVerified bool   `json:"email_verified"`
 	IsAdmin       bool   `json:"is_admin"`
 	Status        string `json:"status"`
+	HasPassword   bool   `json:"has_password"`
 	Locked        bool   `json:"locked"` // temporarily locked after wrong passwords
 	CreatedAt     int64  `json:"created_at"`
 	LastLogin     int64  `json:"last_login"` // 0 when never
@@ -19,7 +20,7 @@ type UserSummary struct {
 func (s *Store) ListUsers(ctx context.Context) ([]UserSummary, error) {
 	rows, err := s.DB.QueryContext(ctx, `
 SELECT id, username, COALESCE(email, ''), email_verified_at IS NOT NULL, is_admin, status,
-       COALESCE(locked_until, 0) > ?, created_at, COALESCE(last_login, 0)
+       password_hash != '', COALESCE(locked_until, 0) > ?, created_at, COALESCE(last_login, 0)
 FROM users ORDER BY is_admin DESC, username`, now())
 	if err != nil {
 		return nil, err
@@ -29,7 +30,7 @@ FROM users ORDER BY is_admin DESC, username`, now())
 	for rows.Next() {
 		var u UserSummary
 		if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.EmailVerified, &u.IsAdmin, &u.Status,
-			&u.Locked, &u.CreatedAt, &u.LastLogin); err != nil {
+			&u.HasPassword, &u.Locked, &u.CreatedAt, &u.LastLogin); err != nil {
 			return nil, err
 		}
 		out = append(out, u)
