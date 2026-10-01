@@ -210,7 +210,7 @@ Example: a group **Friends** with *Can open* on LANraragi and a rule "Email doma
 - **I set the password:** you type a password and tell them. They can change it on their account page.
 - **Send invite mail:** they get a mail with a link to choose their own password (needs email to be set up, see the next step). Using the link also verifies their address.
 
-Pick their groups right away. The Users tab can be searched by name, email or group, filtered by site, group and status, and sorted by name, newest or last login.
+Pick their groups right away. The Users tab can be searched by name, email or group, filtered by site (who can open it), group and status, and sorted by name, newest or last login.
 
 ---
 

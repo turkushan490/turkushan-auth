@@ -46,8 +46,8 @@
         const hay = [u.username, u.email, ...groupsOf(data, u).map((g) => g.name.toLowerCase()), u.is_admin ? 'admins' : ''];
         if (!hay.some((h) => h.includes(q))) return false;
       }
-      // With a site chosen: everyone who can open it, asked for it, or was denied.
-      if (filterSite && standing(data, u, filterSite) === '') return false;
+      // With a site chosen: only the people who can open it right now.
+      if (filterSite && !opens(standing(data, u, filterSite))) return false;
       if (groupFilter === 'admins' && !u.is_admin) return false;
       if (groupFilter === 'none' && (u.is_admin || groupsOf(data, u).length > 0)) return false;
       if (groupFilter && groupFilter !== 'admins' && groupFilter !== 'none' && !groupsOf(data, u).some((g) => String(g.id) === groupFilter)) return false;
@@ -217,7 +217,7 @@
 
 <p class="mb-3 flex flex-wrap items-center gap-x-3 text-sm text-zinc-400">
   {users.length} of {data.users.length} {data.users.length === 1 ? 'user' : 'users'}
-  {#if filterSite}<span>· who can open <span class="font-medium text-zinc-200">{filterSite.name}</span>, asked for it or was denied</span>{/if}
+  {#if filterSite}<span>· who can open <span class="font-medium text-zinc-200">{filterSite.name}</span></span>{/if}
   {#if filtered}<button class="font-medium text-indigo-400 hover:text-indigo-300" onclick={clearFilters}>Clear filters</button>{/if}
 </p>
 
