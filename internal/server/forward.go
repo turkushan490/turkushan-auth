@@ -128,9 +128,32 @@ func (s *Server) handleAccess(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
-	resp := map[string]any{"status": d.Status, "is_admin": user.IsAdmin}
+	resp := map[string]any{
+		"status": d.Status, "is_admin": user.IsAdmin,
+		"email": user.Email, "email_verified": user.EmailVerified,
+		"mail_ready": s.mailReady(r.Context()),
+	}
 	if d.Site != nil {
 		resp["site"] = map[string]string{"name": d.Site.Name, "host": d.Site.Host}
+	}
+	writeJSON(w, http.StatusOK, resp)
+}
+
+// handleSiteInfo tells the sign-in and sign-up pages which site the visitor is
+// heading to (from ?rd=) and what it requires. Unknown hosts give {"known": false}.
+func (s *Server) handleSiteInfo(w http.ResponseWriter, r *http.Request) {
+	resp := map[string]any{"known": false}
+	if u, err := url.Parse(r.URL.Query().Get("rd")); err == nil && u.Host != "" {
+		site, err := s.store.SiteByHost(r.Context(), strings.ToLower(u.Hostname()))
+		if err == nil {
+			resp = map[string]any{
+				"known": true, "name": site.Name, "host": site.Host,
+				"require_email": site.RequireEmail, "require_approval": site.RequireApproval,
+			}
+		} else if !errors.Is(err, store.ErrNotFound) {
+			s.serverError(w, r, err)
+			return
+		}
 	}
 	writeJSON(w, http.StatusOK, resp)
 }

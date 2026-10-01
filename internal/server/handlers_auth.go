@@ -169,7 +169,7 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 	// Best effort: the account works without it, and the user can send it again later.
 	if email != "" && s.mailReady(ctx) {
-		if err := s.sendVerification(ctx, &store.User{ID: id, Username: username}, email); err != nil {
+		if err := s.sendVerification(ctx, &store.User{ID: id, Username: username}, email, req.RD); err != nil {
 			s.log.Warn("verification mail after sign-up failed", "err", err)
 		}
 	}

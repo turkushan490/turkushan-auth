@@ -6,9 +6,11 @@
   import PasswordRules from '../components/PasswordRules.svelte';
   import { api } from '../lib/api.js';
   import { passwordRules } from '../lib/password.js';
-  import { link, currentRD, withRD } from '../lib/state.svelte.js';
+  import { link, currentRD, withRD, siteInfo } from '../lib/state.svelte.js';
 
   const rd = currentRD();
+  let site = $state({ known: false });
+  siteInfo(rd).then((s) => (site = s));
 
   let username = $state('');
   let email = $state('');
@@ -42,10 +44,19 @@
   }
 </script>
 
-<AuthLayout title="Create account" subtitle="After signing up, an admin decides which sites you can open.">
+<AuthLayout
+  title="Create account"
+  subtitle={site.known ? `To open ${site.name}.` : 'After signing up, an admin decides which sites you can open.'}
+>
   <form class="space-y-4" onsubmit={submit}>
     {#if error}
       <Alert>{error}</Alert>
+    {/if}
+    {#if site.require_email}
+      <Alert kind="info">
+        <span class="font-semibold">{site.name} needs a verified email address.</span>
+        Fill in your email below. You'll get a mail with a link to confirm it.
+      </Alert>
     {/if}
 
     <Field
@@ -61,9 +72,11 @@
       name="email"
       type="email"
       autocomplete="email"
-      optional
+      optional={!site.require_email}
       bind:value={email}
-      hint="Needed for some sites and to reset your password yourself. You'll get a mail to confirm it."
+      hint={site.require_email
+        ? `Needed to open ${site.name}. You can also add it later, but you can't open the site without it.`
+        : "Needed for some sites and to reset your password yourself. You'll get a mail to confirm it."}
     />
     <Field label="Password" name="password" type="password" autocomplete="new-password" required bind:value={password}>
       <PasswordRules {password} />

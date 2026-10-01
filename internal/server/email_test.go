@@ -82,6 +82,54 @@ func TestEmailVerificationFlow(t *testing.T) {
 	}
 }
 
+func TestFirstEmailNeedsNoPasswordAndLinkContinuesToSite(t *testing.T) {
+	h, st := newTestServer(t)
+	srv := withMail(t, st)
+	addSite(t, st, "mail.example.com", false, true)
+	c := newClient(t, h)
+	c.post("/api/register", map[string]string{"username": "eva", "password": "Secret!1"})
+
+	// The sign-up page can ask what the site needs before the visitor has an account.
+	_, info := newClient(t, h).do(http.MethodGet, "/api/site?rd=https%3A%2F%2Fmail.example.com%2Fx", nil, nil)
+	if info["known"] != true || info["require_email"] != true {
+		t.Errorf("site info: %v", info)
+	}
+	if _, info := c.do(http.MethodGet, "/api/site?rd=https%3A%2F%2Fnope.example.com%2F", nil, nil); info["known"] != false {
+		t.Errorf("unknown site info: %v", info)
+	}
+
+	_, acc := c.do(http.MethodGet, "/api/access?site=mail.example.com", nil, nil)
+	if acc["status"] != accessEmailRequired || acc["mail_ready"] != true || acc["email"] != "" {
+		t.Fatalf("access: %v", acc)
+	}
+
+	// Adding a first address: no password, and the link leads on to the site.
+	const rd = "https://mail.example.com/page?x=1"
+	if code, out := c.post("/api/account/email", map[string]string{"email": "eva@example.com", "rd": rd}); code != http.StatusOK {
+		t.Fatalf("first email: %d %v", code, out)
+	}
+	_, text := srv.Last(t)
+	if !strings.Contains(text, "&rd=https%3A%2F%2Fmail.example.com%2Fpage%3Fx%3D1") {
+		t.Errorf("verification link has no rd:
+%s", text)
+	}
+	// A typo can be corrected without the password too, as long as nothing is verified.
+	if code, _ := c.post("/api/account/email", map[string]string{"email": "eva2@example.com", "rd": "https://evil.com/"}); code != http.StatusOK {
+		t.Fatalf("correct address: %d", code)
+	}
+	if _, text := srv.Last(t); strings.Contains(text, "evil.com") {
+		t.Error("foreign rd ended up in the mail")
+	}
+	token := linkToken(t, srv, "eva2@example.com", "/verify")
+	if code, _ := c.post("/api/verify-email", map[string]string{"token": token}); code != http.StatusOK {
+		t.Fatalf("verify: %d", code)
+	}
+	// Now it's verified: changing it needs the password again.
+	if code, _ := c.post("/api/account/email", map[string]string{"email": "eva3@example.com"}); code != http.StatusUnauthorized {
+		t.Errorf("change verified address without password: %d", code)
+	}
+}
+
 func TestForgotAndResetPassword(t *testing.T) {
 	h, st := newTestServer(t)
 	srv := withMail(t, st)

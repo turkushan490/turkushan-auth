@@ -78,6 +78,7 @@ func New(cfg *config.Config, st *store.Store, log *slog.Logger, dist fs.FS) (htt
 			r.Post("/register", s.handleRegister)
 			r.Post("/logout", s.handleLogout)
 			r.Get("/access", s.handleAccess)
+			r.Get("/site", s.handleSiteInfo)
 			r.Post("/account/email", s.handleSetEmail)
 			r.Post("/account/email/resend", s.handleResendVerification)
 			r.Post("/account/password", s.handleChangePassword)

@@ -40,6 +40,13 @@ export function currentRD() {
   return new URLSearchParams(location.search).get('rd') || '';
 }
 
+// Which site the visitor is heading to (from ?rd=) and what it needs: { known, name, require_email, ... }.
+export async function siteInfo(rd) {
+  if (!rd) return { known: false };
+  const r = await api('/site?rd=' + encodeURIComponent(rd));
+  return r.ok ? r.data : { known: false };
+}
+
 export function withRD(path, rd) {
   return rd ? `${path}?rd=${encodeURIComponent(rd)}` : path;
 }

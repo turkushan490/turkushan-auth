@@ -86,16 +86,22 @@ func (s *Server) mailReady(ctx context.Context) bool {
 	return err == nil && cfg.Ready()
 }
 
-func (s *Server) sendVerification(ctx context.Context, u *store.User, email string) error {
+// sendVerification mails the confirmation link. rd (optional) is the site the
+// user was on their way to; after verifying they continue there.
+func (s *Server) sendVerification(ctx context.Context, u *store.User, email, rd string) error {
 	token, err := s.store.CreateToken(ctx, u.ID, store.TokenVerifyEmail, email, verifyTTL)
 	if err != nil {
 		return err
+	}
+	link := s.portalURL("/verify", url.Values{"token": {token}})
+	if safe := auth.SafeRedirect(rd, s.redirectBase, s.cfg.AppURL.Scheme == "http"); safe != "" {
+		link += "&rd=" + url.QueryEscape(safe)
 	}
 	return s.sendMail(ctx, email, mailContent{
 		Title:  "Verify your email address",
 		Intro:  fmt.Sprintf("Hi %s, click the button to confirm this is your email address for %s.", u.Username, s.redirectBase),
 		Button: "Verify email",
-		Link:   s.portalURL("/verify", url.Values{"token": {token}}),
+		Link:   link,
 		Footer: "The link works for 24 hours. Didn't ask for this? Then you can ignore this mail.",
 	})
 }
@@ -105,10 +111,12 @@ func (s *Server) sendVerification(ctx context.Context, u *store.User, email stri
 type emailRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+	RD       string `json:"rd"`
 }
 
-// handleSetEmail adds, changes or removes the user's address. It asks for the
-// password, because an email address can be used to reset the password.
+// handleSetEmail adds, changes or removes the user's address. Replacing or
+// removing a verified address asks for the password, because that address can
+// reset the password; adding a first one (nothing to take over yet) does not.
 func (s *Server) handleSetEmail(w http.ResponseWriter, r *http.Request) {
 	u := s.currentUser(r)
 	if u == nil {
@@ -124,9 +132,11 @@ func (s *Server) handleSetEmail(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusTooManyRequests, "Too many email changes. Try again in an hour.")
 		return
 	}
-	if ok, err := auth.VerifyPassword(req.Password, u.PasswordHash); err != nil || !ok {
-		writeError(w, http.StatusUnauthorized, "Wrong password.")
-		return
+	if u.EmailVerified {
+		if ok, err := auth.VerifyPassword(req.Password, u.PasswordHash); err != nil || !ok {
+			writeError(w, http.StatusUnauthorized, "Wrong password.")
+			return
+		}
 	}
 	email, err := auth.NormalizeEmail(req.Email)
 	if err != nil {
@@ -161,7 +171,7 @@ func (s *Server) handleSetEmail(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
-	if err := s.sendVerification(ctx, u, email); err != nil {
+	if err := s.sendVerification(ctx, u, email, req.RD); err != nil {
 		s.log.Error("send verification mail", "err", err)
 		writeError(w, http.StatusBadGateway, "Your address is saved, but the mail could not be sent. Try \"Send again\" later.")
 		return
@@ -173,6 +183,12 @@ func (s *Server) handleResendVerification(w http.ResponseWriter, r *http.Request
 	u := s.currentUser(r)
 	if u == nil {
 		writeError(w, http.StatusUnauthorized, "Please sign in.")
+		return
+	}
+	var req struct {
+		RD string `json:"rd"`
+	}
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 	if u.Email == "" || u.EmailVerified {
@@ -187,7 +203,7 @@ func (s *Server) handleResendVerification(w http.ResponseWriter, r *http.Request
 		writeError(w, http.StatusServiceUnavailable, "Email isn't set up on this portal yet. Ask the admin.")
 		return
 	}
-	if err := s.sendVerification(r.Context(), u, u.Email); err != nil {
+	if err := s.sendVerification(r.Context(), u, u.Email, req.RD); err != nil {
 		s.log.Error("send verification mail", "err", err)
 		writeError(w, http.StatusBadGateway, "The mail could not be sent. Try again later.")
 		return

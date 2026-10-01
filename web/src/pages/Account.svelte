@@ -122,10 +122,13 @@
             {#if error}<Alert>{error}</Alert>{/if}
             <Field label="Email address" type="email" autocomplete="email" bind:value={newEmail}
               hint={user.email ? 'Leave empty to remove your address.' : "We'll send a link to confirm it."} />
-            <Field label="Your password" type="password" autocomplete="current-password" required bind:value={emailPassword} />
+            {#if user.email_verified}
+              <Field label="Your password" type="password" autocomplete="current-password" required bind:value={emailPassword}
+                hint="Needed because your email address can reset your password." />
+            {/if}
             <button type="submit" disabled={busy}
               class="w-full rounded-lg bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:opacity-60">
-              {busy ? 'Saving…' : 'Save'}
+              {busy ? 'Saving…' : user.email_verified ? 'Save' : 'Send verification link'}
             </button>
           </form>
         {/if}

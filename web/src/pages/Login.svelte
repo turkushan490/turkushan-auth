@@ -4,9 +4,11 @@
   import SubmitButton from '../components/SubmitButton.svelte';
   import Alert from '../components/Alert.svelte';
   import { api } from '../lib/api.js';
-  import { app, link, currentRD, withRD } from '../lib/state.svelte.js';
+  import { app, link, currentRD, withRD, siteInfo } from '../lib/state.svelte.js';
 
   const rd = currentRD();
+  let site = $state({ known: false });
+  siteInfo(rd).then((s) => (site = s));
   const flash = app.flash;
   app.flash = '';
 
@@ -30,7 +32,7 @@
   }
 </script>
 
-<AuthLayout title="Sign in" subtitle={rd ? 'Sign in to continue to the site you opened.' : 'Welcome back.'}>
+<AuthLayout title="Sign in" subtitle={site.known ? `To continue to ${site.name}.` : rd ? 'Sign in to continue to the site you opened.' : 'Welcome back.'}>
   <form class="space-y-4" onsubmit={submit}>
     {#if flash}
       <Alert kind="success">{flash}</Alert>
