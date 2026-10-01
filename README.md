@@ -13,7 +13,8 @@ Everything runs in **one container**: a Go backend and a Svelte frontend in a si
 - **Back to where you were:** after signing in, visitors land on the page they opened
 - **Admin panel:**
   - approve/deny requests
-  - manage users (access per site, block, unlock, reset password, delete)
+  - manage users (create or invite, access per site, block, unlock, reset password, delete), with search, filters and sorting
+  - groups that give site access and panel rights, with auto-add rules; several admins
   - add sites with a ready-to-paste NPM config and a **Copy** button
   - audit log of every admin action
 - **Your own look:** logo, site name, accent color, font and background (image, color or gradient), set in the admin panel with a live preview

@@ -3,6 +3,7 @@
   import { toast } from '../../lib/state.svelte.js';
   import { timeAgo, fullDate } from '../../lib/format.js';
   import { card, btnApprove, btnDanger, btnGhost, badge, statusBadge } from './ui.js';
+  import { canApprove } from './rights.js';
 
   let { data, reload } = $props();
 
@@ -51,6 +52,7 @@
               {entry.site_host} · {timeAgo(entry.requested_at)}
             </p>
           </div>
+          {#if canApprove(data, entry.site_id)}
           <div class="flex w-full gap-2 sm:w-auto">
             <button class="{btnDanger} flex-1 sm:flex-none" disabled={busy !== ''} onclick={() => decide(entry, 'denied')}>Deny</button>
             <button class="{btnApprove} flex-1 sm:flex-none" disabled={busy !== ''} onclick={() => decide(entry, 'approved')}>
@@ -58,6 +60,7 @@
               Approve
             </button>
           </div>
+          {/if}
         </li>
       {/each}
     </ul>
@@ -80,7 +83,9 @@
           <span class="w-full text-xs text-zinc-500 sm:w-auto" title={fullDate(entry.decided_at)}>
             by {entry.decided_by || '—'} · {timeAgo(entry.decided_at)}
           </span>
-          {#if entry.status === 'approved'}
+          {#if !canApprove(data, entry.site_id)}
+            <span></span>
+          {:else if entry.status === 'approved'}
             <button class={btnGhost} disabled={busy !== ''} onclick={() => decide(entry, 'denied')}>Revoke</button>
           {:else}
             <button class={btnGhost} disabled={busy !== ''} onclick={() => decide(entry, 'approved')}>Approve</button>

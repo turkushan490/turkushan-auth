@@ -25,7 +25,8 @@ Found a problem? Open a [GitHub issue](https://github.com/turkushan490/turkushan
 | Admin account from env | `ADMIN_USER` / `ADMIN_PASSWORD` create the admin on first start; the password is never overwritten afterwards | `internal/store/users.go` | `TestBootstrapAdmin` |
 | Session secret | `SESSION_SECRET`, or generated once into `/data/secret` (0600). Sessions don't depend on it (they are random tokens), so it's kept for future signed data | `internal/config/config.go` | `TestLoadSecretGeneratesAndReuses` |
 | Trusted proxies only | `X-Real-IP` / `X-Forwarded-For` are only believed from `TRUSTED_PROXIES`; otherwise the direct peer IP is used | `internal/server/security.go` | `TestClientIP` |
-| Admin panel only for admins | every `/api/admin/*` route checks the session and the admin flag; admins can't block/delete admin accounts | `internal/server/admin.go` | `TestAdminAPI` |
+| Admin panel only for staff | every `/api/admin/*` route checks the session and the specific right for that action; only admins can touch admin accounts; nobody can act on their own account | `internal/server/admin.go` | `TestAdminAPI`, `TestSiteModerator` |
+| No privilege escalation | only admins change what a group may do or who is admin; non-admins can't manage or join a group with rights they lack; an admin can't remove their own admin rights | `internal/server/groups.go` | `TestNoPrivilegeEscalation`, `TestAdmins` |
 | Audit log | every admin action is logged with admin, target and IP | `internal/server/admin.go` | `TestAdminAPI`, `TestAdminUserActions` |
 | Deny by default | hosts that aren't registered as a site get 403, even for signed-in users | `internal/server/forward.go` | `TestForwardAuth` |
 | Blocked users are out immediately | blocking deletes all their sessions; blocked accounts can't log in | `internal/store/admin.go` | `TestBlockedUserCannotLogin`, `TestAdminAPI` |

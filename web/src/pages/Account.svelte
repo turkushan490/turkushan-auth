@@ -72,6 +72,7 @@
     toast(r.data.message);
     current = next = confirm = '';
     open = '';
+    refreshSession();
   }
 
   const sectionBtn =
@@ -135,13 +136,15 @@
       </div>
       <div class="py-1">
         <button type="button" class={sectionBtn} onclick={() => toggle('password')} aria-expanded={open === 'password'}>
-          Change password
+          {user.has_password ? 'Change password' : 'Set a password'}
           <svg viewBox="0 0 24 24" class="size-4 text-zinc-500 transition {open === 'password' ? 'rotate-180' : ''}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
         </button>
         {#if open === 'password'}
           <form class="space-y-3 pb-4 pt-2" onsubmit={savePassword}>
             {#if error}<Alert>{error}</Alert>{/if}
-            <Field label="Current password" type="password" autocomplete="current-password" required bind:value={current} />
+            {#if user.has_password}
+              <Field label="Current password" type="password" autocomplete="current-password" required bind:value={current} />
+            {/if}
             <Field label="New password" type="password" autocomplete="new-password" required bind:value={next}>
               <PasswordRules password={next} />
             </Field>
@@ -157,7 +160,7 @@
     </div>
 
     <div class="space-y-2">
-      {#if user.is_admin}
+      {#if user.staff}
         <a
           href="/admin"
           onclick={link}

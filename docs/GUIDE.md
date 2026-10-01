@@ -10,10 +10,11 @@ The examples use `example.com`. Replace it with your own domain.
 - [3. First sign-in](#3-first-sign-in)
 - [4. Protect a site](#4-protect-a-site)
 - [5. Approving users](#5-approving-users)
-- [6. Email (verification and password reset)](#6-email-verification-and-password-reset)
-- [7. Discord notifications](#7-discord-notifications)
-- [8. Make it yours: logo, colors and background](#8-make-it-yours-logo-colors-and-background)
-- [9. Updates, backups and recovery](#9-updates-backups-and-recovery)
+- [6. Groups, rights and more admins](#6-groups-rights-and-more-admins)
+- [7. Email (verification and password reset)](#7-email-verification-and-password-reset)
+- [8. Discord notifications](#8-discord-notifications)
+- [9. Make it yours: logo, colors and background](#9-make-it-yours-logo-colors-and-background)
+- [10. Updates, backups and recovery](#10-updates-backups-and-recovery)
 - [Troubleshooting](#troubleshooting)
 
 ---
@@ -98,12 +99,13 @@ Open `https://auth.example.com` and sign in with `ADMIN_USER` / `ADMIN_PASSWORD`
 
 In **Admin panel → Settings**, set **Portal address for NPM** to how NPM reaches the container, e.g. `http://192.168.0.6:3010`. It's filled into every NPM config the panel generates.
 
-The admin panel has six tabs:
+The admin panel has seven tabs:
 
 | Tab | What you do there |
 |---|---|
 | **Requests** | Approve or deny who may open which site. |
-| **Users** | Per user: give or take access per site, block/unblock, unlock, reset password, delete. |
+| **Users** | Create users; per user: groups, access per site, block/unblock, unlock, reset password, make admin, delete. Search, filter and sort. |
+| **Groups** | Groups with site access and panel rights, auto-add rules, and the built-in Admins group. |
 | **Sites** | Add sites, choose the rules, copy the NPM config. |
 | **Appearance** | Logo, site name, colors, font and background. |
 | **Settings** | Portal address, email, Discord. |
@@ -123,7 +125,7 @@ Example: LANraragi at `manga.example.com`, running on `192.168.0.6:3000`.
 | Hostname | `manga.example.com` | Must be under your cookie domain. |
 | Where the app runs | `http://192.168.0.6:3000` | The app's own IP and port, the same as the Forward Hostname/Port in NPM. **Not** the public URL and **not** the portal's port. |
 | Needs approval | on | Off = everyone who is signed in can open it. |
-| Needs a verified email | off | On = only users with a verified email address. Needs email to be set up (step 6). |
+| Needs a verified email | off | On = only users with a verified email address. Needs email to be set up (step 7). |
 
 Click **Add site**, open **NPM config** on the site and click **Copy**.
 
@@ -163,7 +165,7 @@ Sites that are **not** in the Sites list are denied for everyone. That way a for
 ## 5. Approving users
 
 1. Someone creates an account at `auth.example.com` and opens a site that needs approval.
-2. They see **Waiting for approval**. You see the request in **Admin panel → Requests** (and get a Discord message, see step 7).
+2. They see **Waiting for approval**. You see the request in **Admin panel → Requests** (and get a Discord message, see step 8).
 3. Click **Approve**. They can open the site right away (**Check again** on their page, or just reload the site).
 
 You can also give access up front: **Users** → click the user → **Give access** next to the site. Revoking works the same way, and takes effect on their next page load.
@@ -172,7 +174,47 @@ Admins can always open every registered site.
 
 ---
 
-## 6. Email (verification and password reset)
+## 6. Groups, rights and more admins
+
+### Groups
+
+A group gives its members **access to sites** and, if you want, **rights in the admin panel**. A user can be in several groups and gets everything their groups give, added together.
+
+Admin panel → **Groups** → **New group**, then open the group:
+
+| Section | What you set |
+|---|---|
+| **Members** | Add or remove people. "by rule" means an auto-add rule put them there. |
+| **Sites** | Per site: **Can open** (members get in without asking) and **Can approve** (members may approve or deny requests for that site, a moderator for just that site). |
+| **Rights in the admin panel** | Approve requests (all sites) · Manage users · Manage groups & rules · Manage sites · Settings · Appearance · View audit log. |
+| **Auto-add rules** | Who is put in the group automatically: **Everyone**, a specific **email address**, or everyone on an **email domain** (verified addresses only). |
+
+How it works:
+
+- People with rights but without full admin only see the tabs they have rights for.
+- Only admins can change what a group may do (its site rights and panel rights).
+- Nobody can hand out more than they have: someone with "Manage groups" can't change or join a group that has rights they lack.
+- An explicit **Deny** for a user on a site always wins, also over a group.
+- Rules keep themselves up to date: people are added when they match and taken out when they no longer do. People you add by hand always stay.
+
+Example: a group **Friends** with *Can open* on LANraragi and a rule "Email domain: example.com". Everyone who verifies an `@example.com` address can open LANraragi right away.
+
+### Admins
+
+**Admins** is the built-in group with all rights. In **Groups → Admins** or on a user in **Users**, an admin can make someone else admin or take it away. You can't remove your own admin rights; another admin has to do that, so there's always at least one.
+
+### Creating users yourself
+
+**Users → Create user**:
+
+- **I set the password:** you type a password and tell them. They can change it on their account page.
+- **Send invite mail:** they get a mail with a link to choose their own password (needs email to be set up, see the next step). Using the link also verifies their address.
+
+Pick their groups right away. The Users tab can be searched by name, email or group, filtered by site, group and status, and sorted by name, newest or last login.
+
+---
+
+## 7. Email (verification and password reset)
 
 With email set up, users can:
 
@@ -183,13 +225,13 @@ Without email everything else still works; you reset passwords yourself in **Use
 
 The portal sends through any SMTP provider. **[Resend](https://resend.com)** is recommended: free up to 3,000 mails per month, EU servers, simple setup. Others work too (Brevo, Postmark, Mailgun, SendGrid, Amazon SES) with their SMTP settings.
 
-### 6.1 Add your domain in Resend
+### 7.1 Add your domain in Resend
 
 1. Create an account at [resend.com](https://resend.com).
 2. **Domains → Add Domain** → `example.com`, region **EU (Ireland)** (or the one closest to you).
 3. Resend shows the DNS records to add. Keep that page open.
 
-### 6.2 Add the DNS records at your domain provider
+### 7.2 Add the DNS records at your domain provider
 
 Open the DNS settings of your domain (for example at Versio: **Domeinen → your domain → DNS beheer**). Add each record **exactly** as Resend shows it. For a Resend account in the EU region, it looks like this:
 
@@ -210,7 +252,7 @@ Important:
 
 Back in Resend, click **Verify DNS Records**. It usually turns green within a few minutes. Changes can take up to an hour to be visible everywhere.
 
-### 6.3 Create an API key
+### 7.3 Create an API key
 
 Resend → **API Keys → Create API Key**:
 
@@ -220,7 +262,7 @@ Resend → **API Keys → Create API Key**:
 
 Copy the key (starts with `re_`). You only see it once. Keep it secret.
 
-### 6.4 Fill in the portal
+### 7.4 Fill in the portal
 
 Admin panel → **Settings → Email**:
 
@@ -233,14 +275,14 @@ Admin panel → **Settings → Email**:
 
 Also check in Resend → Domains → your domain → **Configuration** that **click tracking** and **open tracking** are off. Tracking rewrites the links in the mail, and spam filters distrust login mails with rewritten links.
 
-### 6.5 Test
+### 7.5 Test
 
 1. Your account page → **Add email address** → address + password → **Save** → click the link in the mail → **Email verified**.
 2. Sign out → **Forgot password?** → your username → click the link in the mail → choose a new password → sign in with it.
 
 ---
 
-## 7. Discord notifications
+## 8. Discord notifications
 
 Get a message when someone creates an account or asks for access to a site.
 
@@ -249,7 +291,7 @@ Get a message when someone creates an account or asks for access to a site.
 
 ---
 
-## 8. Make it yours: logo, colors and background
+## 9. Make it yours: logo, colors and background
 
 Admin panel → **Appearance**. Everything you change shows right away as a preview on the page and in the small sign-in preview; it goes live for everyone when you click **Save**.
 
@@ -272,7 +314,7 @@ Tips:
 
 ---
 
-## 9. Updates, backups and recovery
+## 10. Updates, backups and recovery
 
 **Updates:** every change to the project builds a new `latest` image. Unraid shows **update ready** on the Docker tab; click it to update. Your data stays.
 

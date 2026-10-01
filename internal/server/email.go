@@ -81,6 +81,13 @@ func (s *Server) sendMail(ctx context.Context, to string, c mailContent) error {
 	return mail.Send(ctx, cfg, mail.Message{To: to, Subject: c.Title, Text: text, HTML: html.String()})
 }
 
+// syncGroups re-applies the auto-add rules to one user; a failure is only logged.
+func (s *Server) syncGroups(ctx context.Context, userID int64) {
+	if err := s.store.SyncRuleGroups(ctx, userID); err != nil {
+		s.log.Error("apply group rules", "user_id", userID, "err", err)
+	}
+}
+
 func (s *Server) mailReady(ctx context.Context) bool {
 	cfg, err := s.mailConfig(ctx)
 	return err == nil && cfg.Ready()
@@ -149,6 +156,7 @@ func (s *Server) handleSetEmail(w http.ResponseWriter, r *http.Request) {
 			s.serverError(w, r, err)
 			return
 		}
+		s.syncGroups(ctx, u.ID)
 		writeJSON(w, http.StatusOK, map[string]string{"message": "Email address removed."})
 		return
 	}
@@ -171,6 +179,7 @@ func (s *Server) handleSetEmail(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
+	s.syncGroups(ctx, u.ID)
 	if err := s.sendVerification(ctx, u, email, req.RD); err != nil {
 		s.log.Error("send verification mail", "err", err)
 		writeError(w, http.StatusBadGateway, "Your address is saved, but the mail could not be sent. Try \"Send again\" later.")
@@ -231,9 +240,11 @@ func (s *Server) handleChangePassword(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusTooManyRequests, "Too many attempts. Wait a minute and try again.")
 		return
 	}
-	if ok, err := auth.VerifyPassword(req.Current, u.PasswordHash); err != nil || !ok {
-		writeError(w, http.StatusUnauthorized, "Your current password is wrong.")
-		return
+	if u.PasswordHash != "" {
+		if ok, err := auth.VerifyPassword(req.Current, u.PasswordHash); err != nil || !ok {
+			writeError(w, http.StatusUnauthorized, "Your current password is wrong.")
+			return
+		}
 	}
 	if err := auth.ValidatePassword(req.New); err != nil {
 		writeError(w, http.StatusBadRequest, sentence(err))
@@ -294,6 +305,7 @@ func (s *Server) handleVerifyEmail(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "This link is for an email address you no longer use.")
 		return
 	}
+	s.syncGroups(ctx, userID)
 	s.log.Info("email verified", "user_id", userID)
 	writeJSON(w, http.StatusOK, map[string]string{"email": email})
 }
@@ -367,7 +379,7 @@ func (s *Server) handleResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	userID, _, err := s.store.ConsumeToken(ctx, req.Token, store.TokenResetPassword)
+	userID, tokenEmail, err := s.store.ConsumeToken(ctx, req.Token, store.TokenResetPassword)
 	if errors.Is(err, store.ErrNotFound) {
 		writeError(w, http.StatusBadRequest, "This link is invalid, already used or expired. Request a new one.")
 		return
@@ -384,6 +396,13 @@ func (s *Server) handleResetPassword(w http.ResponseWriter, r *http.Request) {
 	if err := s.store.SetPassword(ctx, userID, hash); err != nil {
 		s.serverError(w, r, err)
 		return
+	}
+	// The link arrived in their mailbox, so that address is theirs (this is how invites get verified).
+	if tokenEmail != "" {
+		if _, err := s.store.VerifyEmail(ctx, userID, tokenEmail); err != nil && !errors.Is(err, store.ErrEmailTaken) {
+			s.log.Error("verify email after reset", "err", err)
+		}
+		s.syncGroups(ctx, userID)
 	}
 	s.log.Info("password reset via email", "user_id", userID)
 	writeJSON(w, http.StatusOK, map[string]string{"redirect": "/login"})
@@ -443,6 +462,9 @@ func (s *Server) applyMailSettings(ctx context.Context, in mailSettingsInput) (s
 }
 
 func (s *Server) handleTestMail(w http.ResponseWriter, r *http.Request) {
+	if !s.need(w, r, store.PermSettings) {
+		return
+	}
 	var req struct {
 		To string `json:"to"`
 	}

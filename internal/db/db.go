@@ -146,4 +146,64 @@ DROP INDEX users_email;
 CREATE UNIQUE INDEX users_verified_email ON users (email) WHERE email_verified_at IS NOT NULL;
 CREATE INDEX users_email ON users (email);
 `,
+	// 3: groups with rights, auto-add rules, and logins via Discord/Google.
+	// Admins stay users.is_admin = 1; the "Admins" group in the panel is that flag.
+	`
+CREATE TABLE groups (
+  id          INTEGER PRIMARY KEY,
+  name        TEXT    NOT NULL UNIQUE COLLATE NOCASE,
+  description TEXT    NOT NULL DEFAULT '',
+  perms       TEXT    NOT NULL DEFAULT '',
+  created_at  INTEGER NOT NULL
+);
+
+CREATE TABLE user_groups (
+  user_id  INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  group_id INTEGER NOT NULL REFERENCES groups (id) ON DELETE CASCADE,
+  source   TEXT    NOT NULL DEFAULT 'manual' CHECK (source IN ('manual', 'rule')),
+  added_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, group_id)
+);
+CREATE INDEX user_groups_group ON user_groups (group_id);
+
+CREATE TABLE group_sites (
+  group_id    INTEGER NOT NULL REFERENCES groups (id) ON DELETE CASCADE,
+  site_id     INTEGER NOT NULL REFERENCES sites (id) ON DELETE CASCADE,
+  can_open    INTEGER NOT NULL DEFAULT 0,
+  can_approve INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (group_id, site_id)
+);
+
+CREATE TABLE group_rules (
+  id         INTEGER PRIMARY KEY,
+  group_id   INTEGER NOT NULL REFERENCES groups (id) ON DELETE CASCADE,
+  kind       TEXT    NOT NULL CHECK (kind IN ('everyone', 'method', 'email', 'domain', 'discord_server', 'discord_role')),
+  value      TEXT    NOT NULL DEFAULT '',
+  created_at INTEGER NOT NULL
+);
+
+CREATE TABLE identities (
+  provider   TEXT    NOT NULL,
+  subject    TEXT    NOT NULL,
+  user_id    INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  email      TEXT    NOT NULL DEFAULT '',
+  display    TEXT    NOT NULL DEFAULT '',
+  data       TEXT    NOT NULL DEFAULT '',
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (provider, subject)
+);
+CREATE INDEX identities_user ON identities (user_id);
+
+CREATE TABLE oauth_pending (
+  id         TEXT    PRIMARY KEY,
+  provider   TEXT    NOT NULL,
+  subject    TEXT    NOT NULL,
+  email      TEXT    NOT NULL DEFAULT '',
+  verified   INTEGER NOT NULL DEFAULT 0,
+  display    TEXT    NOT NULL DEFAULT '',
+  data       TEXT    NOT NULL DEFAULT '',
+  rd         TEXT    NOT NULL DEFAULT '',
+  expires_at INTEGER NOT NULL
+);
+`,
 }

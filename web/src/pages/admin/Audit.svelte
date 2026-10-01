@@ -6,6 +6,17 @@
   const labels = {
     'admin.bootstrap': 'Admin account created',
     'admin.promote': 'Made admin',
+    'admin.demote': 'Admin removed',
+    'user.create': 'User created',
+    'group.create': 'Group created',
+    'group.update': 'Group renamed',
+    'group.delete': 'Group deleted',
+    'group.rights': 'Group rights changed',
+    'group.site': 'Group site rights changed',
+    'group.member_add': 'Added to group',
+    'group.member_remove': 'Removed from group',
+    'group.rule_add': 'Auto-add rule added',
+    'group.rule_remove': 'Auto-add rule removed',
     'site.create': 'Site added',
     'site.update': 'Site changed',
     'site.delete': 'Site removed',
@@ -24,7 +35,7 @@
     'appearance.background': 'Background image changed',
   };
   const tone = (action) =>
-    action.endsWith('delete') || action.endsWith('block') || action.endsWith('denied')
+    action.endsWith('delete') || action.endsWith('block') || action.endsWith('denied') || action.endsWith('demote') || action.endsWith('remove')
       ? 'bg-rose-400'
       : action.startsWith('settings') || action.startsWith('appearance') || action.endsWith('update')
         ? 'bg-sky-400'

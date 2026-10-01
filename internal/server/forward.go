@@ -55,6 +55,17 @@ func (s *Server) decide(ctx context.Context, u *store.User, host string, fileReq
 	if err != nil {
 		return d, err
 	}
+	// An explicit "denied" for this person wins over what their groups allow.
+	if status != store.AccessApproved && status != store.AccessDenied {
+		viaGroup, err := s.store.GroupOpens(ctx, u.ID, site.ID)
+		if err != nil {
+			return d, err
+		}
+		if viaGroup {
+			d.Status = accessOK
+			return d, nil
+		}
+	}
 	switch status {
 	case store.AccessApproved:
 		d.Status = accessOK

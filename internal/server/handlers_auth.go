@@ -20,6 +20,7 @@ func userJSON(u *store.User) map[string]any {
 		"is_admin":       u.IsAdmin,
 		"email":          u.Email,
 		"email_verified": u.EmailVerified,
+		"has_password":   u.PasswordHash != "",
 	}
 }
 
@@ -38,7 +39,14 @@ func (s *Server) handleSession(w http.ResponseWriter, r *http.Request) {
 	resp["appearance"] = s.appearanceJSON(a)
 	if u := s.currentUser(r); u != nil {
 		resp["authenticated"] = true
-		resp["user"] = userJSON(u)
+		user := userJSON(u)
+		// staff: may open the admin panel (admins and members of a group with rights).
+		if rights, err := s.store.UserRights(r.Context(), u); err != nil {
+			s.log.Error("load rights", "err", err)
+		} else {
+			user["staff"] = rights.Staff()
+		}
+		resp["user"] = user
 	}
 	writeJSON(w, http.StatusOK, resp)
 }
@@ -78,8 +86,11 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ok, err := auth.VerifyPassword(req.Password, u.PasswordHash)
-	if err != nil {
+	ok := false
+	if u.PasswordHash == "" {
+		// No password set (invited, or signs in with Discord/Google): never matches.
+		auth.DummyVerify(req.Password)
+	} else if ok, err = auth.VerifyPassword(req.Password, u.PasswordHash); err != nil {
 		s.serverError(w, r, err)
 		return
 	}
@@ -167,6 +178,9 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.log.Info("user registered", "username", username, "ip", ip)
+	if err := s.store.SyncRuleGroups(ctx, id); err != nil {
+		s.log.Error("apply group rules", "err", err)
+	}
 	s.notifyAdmin(ctx, "New account", fmt.Sprintf("**%s** created an account.", username))
 	if err := s.startSession(w, r, id, ip); err != nil {
 		s.serverError(w, r, err)

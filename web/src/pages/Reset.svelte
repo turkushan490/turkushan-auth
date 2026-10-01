@@ -8,7 +8,9 @@
   import { passwordRules } from '../lib/password.js';
   import { app, link, navigate, refreshSession } from '../lib/state.svelte.js';
 
-  const token = new URLSearchParams(location.search).get('token') || '';
+  const params = new URLSearchParams(location.search);
+  const token = params.get('token') || '';
+  const invite = params.get('invite') === '1'; // link from an invite mail: first password
 
   let password = $state('');
   let confirm = $state('');
@@ -34,12 +36,15 @@
       return;
     }
     await refreshSession();
-    app.flash = 'Password changed. Sign in with your new password.';
+    app.flash = invite ? 'Your password is set. Sign in to get started.' : 'Password changed. Sign in with your new password.';
     navigate('/login');
   }
 </script>
 
-<AuthLayout title="Choose a new password" subtitle="You'll be signed out on all your devices.">
+<AuthLayout
+  title={invite ? 'Welcome! Choose your password' : 'Choose a new password'}
+  subtitle={invite ? 'Pick a password for your new account.' : "You'll be signed out on all your devices."}
+>
   {#if !token}
     <div class="space-y-4">
       <Alert>This link is incomplete. Open the link from the mail again, or request a new one.</Alert>
@@ -53,10 +58,10 @@
           {#if error.includes('Request a new')}<a href="/forgot" onclick={link} class="ml-1 underline underline-offset-2">Request a new link</a>{/if}
         </Alert>
       {/if}
-      <Field label="New password" type="password" autocomplete="new-password" required bind:value={password}>
+      <Field label={invite ? 'Password' : 'New password'} type="password" autocomplete="new-password" required bind:value={password}>
         <PasswordRules {password} />
       </Field>
-      <Field label="Confirm new password" type="password" autocomplete="new-password" required bind:value={confirm} />
+      <Field label={invite ? 'Confirm password' : 'Confirm new password'} type="password" autocomplete="new-password" required bind:value={confirm} />
       <div class="pt-2">
         <SubmitButton {busy}>Save new password</SubmitButton>
       </div>

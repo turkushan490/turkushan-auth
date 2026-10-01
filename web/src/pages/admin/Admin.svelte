@@ -2,6 +2,8 @@
   import { app, link, look, navigate } from '../../lib/state.svelte.js';
   import Logo from '../../components/Logo.svelte';
   import Appearance from './Appearance.svelte';
+  import Groups from './Groups.svelte';
+  import { visibleTabs } from './rights.js';
   import { api } from '../../lib/api.js';
   import Requests from './Requests.svelte';
   import Users from './Users.svelte';
@@ -12,12 +14,19 @@
   const tabs = [
     { id: 'requests', label: 'Requests', path: '/admin' },
     { id: 'users', label: 'Users', path: '/admin/users' },
+    { id: 'groups', label: 'Groups', path: '/admin/groups' },
     { id: 'sites', label: 'Sites', path: '/admin/sites' },
     { id: 'appearance', label: 'Appearance', path: '/admin/appearance' },
     { id: 'settings', label: 'Settings', path: '/admin/settings' },
     { id: 'audit', label: 'Audit log', path: '/admin/audit' },
   ];
-  const tab = $derived(tabs.find((t) => t.path === app.path.replace(/\/$/, ''))?.id || 'requests');
+  // Only the tabs this person has rights for; the first one is the start page.
+  const myTabs = $derived(data ? tabs.filter((t) => visibleTabs(data).includes(t.id)) : []);
+  const tab = $derived.by(() => {
+    const wanted = tabs.find((t) => t.path === app.path.replace(/\/$/, ''))?.id;
+    if (myTabs.some((t) => t.id === wanted)) return wanted;
+    return myTabs[0]?.id || '';
+  });
 
   let data = $state(null);
   let error = $state('');
@@ -38,6 +47,7 @@
   const counts = $derived({
     requests: data?.access.filter((a) => a.status === 'pending').length || 0,
     users: data?.users.length || 0,
+    groups: (data?.groups.length || 0) + 1,
     sites: data?.sites.length || 0,
   });
 </script>
@@ -57,9 +67,9 @@
       </div>
     </div>
     <nav class="mx-auto flex max-w-5xl gap-1 overflow-x-auto px-4" aria-label="Admin sections">
-      {#each tabs as t}
+      {#each myTabs as t}
         <a
-          href={t.path}
+          href={t.id === myTabs[0]?.id ? '/admin' : t.path}
           onclick={link}
           aria-current={tab === t.id ? 'page' : undefined}
           class="relative flex shrink-0 items-center gap-2 px-3 py-3 text-sm font-medium transition {tab === t.id ? 'text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'}"
@@ -67,7 +77,7 @@
           {t.label}
           {#if t.id === 'requests' && counts.requests > 0}
             <span class="rounded-full bg-amber-500/20 px-1.5 text-xs font-semibold text-amber-300">{counts.requests}</span>
-          {:else if (t.id === 'users' || t.id === 'sites') && data}
+          {:else if (t.id === 'users' || t.id === 'sites' || t.id === 'groups') && data}
             <span class="text-xs text-zinc-600">{counts[t.id]}</span>
           {/if}
           {#if tab === t.id}
@@ -95,13 +105,15 @@
       <Requests {data} reload={load} />
     {:else if tab === 'users'}
       <Users {data} reload={load} />
+    {:else if tab === 'groups'}
+      <Groups {data} reload={load} />
     {:else if tab === 'sites'}
       <Sites {data} reload={load} />
     {:else if tab === 'appearance'}
       <Appearance />
     {:else if tab === 'settings'}
       <Settings {data} reload={load} />
-    {:else}
+    {:else if tab === 'audit'}
       <Audit />
     {/if}
   </main>

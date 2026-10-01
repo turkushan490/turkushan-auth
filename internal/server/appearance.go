@@ -139,6 +139,9 @@ type appearanceInput struct {
 }
 
 func (s *Server) handleUpdateAppearance(w http.ResponseWriter, r *http.Request) {
+	if !s.need(w, r, store.PermAppearance) {
+		return
+	}
 	var in appearanceInput
 	if !decodeJSON(w, r, &in) {
 		return
@@ -227,6 +230,9 @@ func (s *Server) brandingPath(kind string) string {
 
 // handleUploadBranding stores an uploaded logo or background. The request body is the file itself.
 func (s *Server) handleUploadBranding(w http.ResponseWriter, r *http.Request) {
+	if !s.need(w, r, store.PermAppearance) {
+		return
+	}
 	kind, ok := brandingKinds[chi.URLParam(r, "kind")]
 	if !ok {
 		writeError(w, http.StatusNotFound, "Not found.")
@@ -280,6 +286,9 @@ func (s *Server) handleUploadBranding(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleDeleteBranding(w http.ResponseWriter, r *http.Request) {
+	if !s.need(w, r, store.PermAppearance) {
+		return
+	}
 	kind, ok := brandingKinds[chi.URLParam(r, "kind")]
 	if !ok {
 		writeError(w, http.StatusNotFound, "Not found.")

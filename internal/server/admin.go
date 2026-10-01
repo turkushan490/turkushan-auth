@@ -19,25 +19,59 @@ import (
 )
 
 type adminKey struct{}
+type rightsKey struct{}
 
-// requireAdmin lets only signed-in admins through and stores the admin in the context.
-func (s *Server) requireAdmin(next http.Handler) http.Handler {
+// requireStaff lets through everyone who may use the admin panel: admins and
+// members of a group with rights. What they may do there is checked per action.
+func (s *Server) requireStaff(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		u := s.currentUser(r)
 		if u == nil {
 			writeError(w, http.StatusUnauthorized, "Please sign in.")
 			return
 		}
-		if !u.IsAdmin {
-			writeError(w, http.StatusForbidden, "Admins only.")
+		rights, err := s.store.UserRights(r.Context(), u)
+		if err != nil {
+			s.serverError(w, r, err)
 			return
 		}
-		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), adminKey{}, u)))
+		if !rights.Staff() {
+			writeError(w, http.StatusForbidden, "You don't have access to the admin panel.")
+			return
+		}
+		ctx := context.WithValue(r.Context(), adminKey{}, u)
+		ctx = context.WithValue(ctx, rightsKey{}, rights)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
+// adminFrom is the signed-in staff member doing the action.
 func adminFrom(r *http.Request) *store.User {
 	return r.Context().Value(adminKey{}).(*store.User)
+}
+
+func rightsFrom(r *http.Request) store.Rights {
+	return r.Context().Value(rightsKey{}).(store.Rights)
+}
+
+const msgNoRight = "You don't have the right to do that."
+
+// need answers 403 unless the staff member has the global right.
+func (s *Server) need(w http.ResponseWriter, r *http.Request, perm string) bool {
+	if rightsFrom(r).Has(perm) {
+		return true
+	}
+	writeError(w, http.StatusForbidden, msgNoRight)
+	return false
+}
+
+// needAdmin answers 403 unless the staff member is a full admin.
+func (s *Server) needAdmin(w http.ResponseWriter, r *http.Request) bool {
+	if rightsFrom(r).Admin {
+		return true
+	}
+	writeError(w, http.StatusForbidden, "Only admins can do that.")
+	return false
 }
 
 // audit records an admin action; a failure is logged but doesn't fail the action.
@@ -69,67 +103,130 @@ func (s *Server) portalAddress(ctx context.Context) (string, error) {
 	return s.cfg.PortalInternalURL, nil
 }
 
+// handleAdminData returns what the panel shows, limited to what this staff member may see.
 func (s *Server) handleAdminData(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	me, rights := adminFrom(r), rightsFrom(r)
+	fail := func(err error) bool {
+		if err != nil {
+			s.serverError(w, r, err)
+		}
+		return err != nil
+	}
+
 	sites, err := s.store.ListSites(ctx)
-	if err != nil {
-		s.serverError(w, r, err)
-		return
-	}
-	access, err := s.store.ListAccess(ctx)
-	if err != nil {
-		s.serverError(w, r, err)
-		return
-	}
-	users, err := s.store.ListUsers(ctx)
-	if err != nil {
-		s.serverError(w, r, err)
+	if fail(err) {
 		return
 	}
 	portal, err := s.portalAddress(ctx)
-	if err != nil {
-		s.serverError(w, r, err)
+	if fail(err) {
 		return
 	}
-	webhook, err := s.store.Setting(ctx, store.SettingDiscordWebhook)
-	if err != nil {
-		s.serverError(w, r, err)
-		return
-	}
-	mc, err := s.mailConfig(ctx)
-	if err != nil {
-		s.serverError(w, r, err)
-		return
+	siteList := make([]siteWithSnippet, len(sites))
+	for i, st := range sites {
+		if rights.Has(store.PermSites) {
+			siteList[i] = siteWithSnippet{Site: st, Snippet: nginxSnippet(st.Upstream, portal)}
+		} else {
+			st.Upstream = "" // internal addresses are only for whoever manages sites
+			siteList[i] = siteWithSnippet{Site: st}
+		}
 	}
 
-	withSnippets := make([]siteWithSnippet, len(sites))
-	for i, st := range sites {
-		withSnippets[i] = siteWithSnippet{Site: st, Snippet: nginxSnippet(st.Upstream, portal)}
+	// Requests: only for the sites this person may approve.
+	access, err := s.store.ListAccess(ctx)
+	if fail(err) {
+		return
 	}
-	me := adminFrom(r)
-	writeJSON(w, http.StatusOK, map[string]any{
-		"me":     map[string]any{"id": me.ID, "username": me.Username},
-		"sites":  withSnippets,
-		"access": access,
-		"users":  users,
-		"settings": map[string]any{
-			"portal_url":          portal,
-			"discord_webhook_set": webhook != "",
-			"base_domain":         s.redirectBase,
-			"app_url":             s.cfg.AppURL.String(),
-			"smtp": map[string]any{ // the password itself is never sent back
-				"host":         mc.Host,
-				"port":         mc.Port,
-				"username":     mc.Username,
-				"from":         mc.From,
-				"password_set": mc.Password != "",
-				"ready":        mc.Ready(),
-			},
+	visible := []store.AccessEntry{}
+	for _, a := range access {
+		if rights.CanApprove(a.SiteID) || rights.Has(store.PermUsers) {
+			visible = append(visible, a)
+		}
+	}
+
+	approveSites := []int64{}
+	for id := range rights.ApproveSites {
+		approveSites = append(approveSites, id)
+	}
+	perms := []string{}
+	for _, p := range store.AllPerms {
+		if rights.Has(p) {
+			perms = append(perms, p)
+		}
+	}
+	settings := map[string]any{
+		"base_domain": s.redirectBase,
+		"app_url":     s.cfg.AppURL.String(),
+		"portal_url":  portal,
+	}
+	resp := map[string]any{
+		"me": map[string]any{
+			"id": me.ID, "username": me.Username, "admin": rights.Admin,
+			"perms": perms, "approve_sites": approveSites,
 		},
-	})
+		"sites":       siteList,
+		"access":      visible,
+		"users":       []store.UserSummary{},
+		"groups":      []store.Group{},
+		"memberships": []store.Membership{},
+		"group_sites": []store.GroupSite{},
+		"rules":       []store.Rule{},
+		"all_perms":   store.AllPerms,
+		"mail_ready":  s.mailReady(ctx),
+		"settings":    settings,
+	}
+
+	if rights.Has(store.PermUsers) || rights.Has(store.PermGroups) {
+		users, err := s.store.ListUsers(ctx)
+		if fail(err) {
+			return
+		}
+		groups, err := s.store.ListGroups(ctx)
+		if fail(err) {
+			return
+		}
+		memberships, err := s.store.ListMemberships(ctx)
+		if fail(err) {
+			return
+		}
+		groupSites, err := s.store.ListGroupSites(ctx)
+		if fail(err) {
+			return
+		}
+		rules, err := s.store.ListRules(ctx)
+		if fail(err) {
+			return
+		}
+		resp["users"], resp["groups"], resp["memberships"] = users, groups, memberships
+		resp["group_sites"], resp["rules"] = groupSites, rules
+	}
+
+	if rights.Has(store.PermSettings) {
+		webhook, err := s.store.Setting(ctx, store.SettingDiscordWebhook)
+		if fail(err) {
+			return
+		}
+		mc, err := s.mailConfig(ctx)
+		if fail(err) {
+			return
+		}
+		settings["discord_webhook_set"] = webhook != ""
+		settings["smtp"] = map[string]any{ // the password itself is never sent back
+			"host":         mc.Host,
+			"port":         mc.Port,
+			"username":     mc.Username,
+			"from":         mc.From,
+			"password_set": mc.Password != "",
+			"ready":        mc.Ready(),
+		}
+	}
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func (s *Server) handleAdminAudit(w http.ResponseWriter, r *http.Request) {
+	if !s.need(w, r, store.PermAudit) {
+		return
+	}
 	entries, err := s.store.ListAudit(r.Context(), 300)
 	if err != nil {
 		s.serverError(w, r, err)
@@ -234,6 +331,9 @@ func siteFlags(st *store.Site) string {
 }
 
 func (s *Server) handleCreateSite(w http.ResponseWriter, r *http.Request) {
+	if !s.need(w, r, store.PermSites) {
+		return
+	}
 	var in siteInput
 	if !decodeJSON(w, r, &in) {
 		return
@@ -256,6 +356,9 @@ func (s *Server) handleCreateSite(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleUpdateSite(w http.ResponseWriter, r *http.Request) {
+	if !s.need(w, r, store.PermSites) {
+		return
+	}
 	id, ok := pathID(r)
 	if !ok {
 		writeError(w, http.StatusBadRequest, "Invalid site.")
@@ -287,6 +390,9 @@ func (s *Server) handleUpdateSite(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleDeleteSite(w http.ResponseWriter, r *http.Request) {
+	if !s.need(w, r, store.PermSites) {
+		return
+	}
 	id, ok := pathID(r)
 	if !ok {
 		writeError(w, http.StatusBadRequest, "Invalid site.")
@@ -326,6 +432,10 @@ func (s *Server) handleSetAccess(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "Status must be approved or denied.")
 		return
 	}
+	if !rightsFrom(r).CanApprove(in.SiteID) {
+		writeError(w, http.StatusForbidden, msgNoRight)
+		return
+	}
 	ctx := r.Context()
 	username, err := s.store.UsernameByID(ctx, in.UserID)
 	if errors.Is(err, store.ErrNotFound) {
@@ -355,8 +465,12 @@ func (s *Server) handleSetAccess(w http.ResponseWriter, r *http.Request) {
 
 // --- users ---
 
-// targetUser loads the user in the URL and refuses actions on yourself or other admins.
+// targetUser loads the user in the URL for a user-management action. It needs
+// the "users" right, never works on yourself, and only admins may touch admins.
 func (s *Server) targetUser(w http.ResponseWriter, r *http.Request, verb string) *store.User {
+	if !s.need(w, r, store.PermUsers) {
+		return nil
+	}
 	id, ok := pathID(r)
 	if !ok {
 		writeError(w, http.StatusBadRequest, "Invalid user.")
@@ -371,8 +485,12 @@ func (s *Server) targetUser(w http.ResponseWriter, r *http.Request, verb string)
 		s.serverError(w, r, err)
 		return nil
 	}
-	if u.ID == adminFrom(r).ID || u.IsAdmin {
-		writeError(w, http.StatusForbidden, "You can't "+verb+" an admin account here.")
+	if u.ID == adminFrom(r).ID {
+		writeError(w, http.StatusForbidden, "You can't "+verb+" your own account here.")
+		return nil
+	}
+	if u.IsAdmin && !rightsFrom(r).Admin {
+		writeError(w, http.StatusForbidden, "Only admins can "+verb+" an admin account.")
 		return nil
 	}
 	return u
@@ -460,6 +578,9 @@ func (in settingsInput) hasMail() bool {
 }
 
 func (s *Server) handleUpdateSettings(w http.ResponseWriter, r *http.Request) {
+	if !s.need(w, r, store.PermSettings) {
+		return
+	}
 	var in settingsInput
 	if !decodeJSON(w, r, &in) {
 		return
@@ -509,6 +630,9 @@ func (s *Server) handleUpdateSettings(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleTestDiscord(w http.ResponseWriter, r *http.Request) {
+	if !s.need(w, r, store.PermSettings) {
+		return
+	}
 	webhook, err := s.store.Setting(r.Context(), store.SettingDiscordWebhook)
 	if err != nil {
 		s.serverError(w, r, err)
