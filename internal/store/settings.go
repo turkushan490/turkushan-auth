@@ -15,6 +15,7 @@ const (
 	SettingSMTPUsername   = "smtp_username"
 	SettingSMTPPassword   = "smtp_password" // stored as-is: the portal needs it to log in to the mail server
 	SettingSMTPFrom       = "smtp_from"
+	SettingAppearance     = "appearance" // JSON, see internal/server/appearance.go
 )
 
 // Setting returns a stored value, or "" when unset.

@@ -30,3 +30,26 @@ export async function api(path, body, method) {
   if (!res.ok && !data.error) data.error = `Something went wrong (${res.status}).`;
   return { ok: res.ok, status: res.status, data };
 }
+
+// apiUpload sends a file as the raw request body (logo / background upload).
+export async function apiUpload(path, file) {
+  let res;
+  try {
+    res = await fetch('/api' + path, {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'X-CSRF-Token': cookie('ta_csrf'), 'Content-Type': 'application/octet-stream' },
+      credentials: 'same-origin',
+      body: file,
+    });
+  } catch {
+    return { ok: false, status: 0, data: { error: 'Upload failed. Check your connection.' } };
+  }
+  let data = {};
+  try {
+    data = await res.json();
+  } catch {
+    // e.g. the proxy refused the upload
+  }
+  if (!res.ok && !data.error) data.error = res.status === 413 ? 'That file is too big.' : `Upload failed (${res.status}).`;
+  return { ok: res.ok, status: res.status, data };
+}

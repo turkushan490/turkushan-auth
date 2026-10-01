@@ -19,11 +19,14 @@
     'settings.discord_webhook': 'Discord webhook changed',
     'settings.mail': 'Email settings changed',
     'settings.test_mail': 'Test mail sent',
+    'appearance.update': 'Appearance changed',
+    'appearance.logo': 'Logo changed',
+    'appearance.background': 'Background image changed',
   };
   const tone = (action) =>
     action.endsWith('delete') || action.endsWith('block') || action.endsWith('denied')
       ? 'bg-rose-400'
-      : action.startsWith('settings') || action.endsWith('update')
+      : action.startsWith('settings') || action.startsWith('appearance') || action.endsWith('update')
         ? 'bg-sky-400'
         : 'bg-emerald-400';
 

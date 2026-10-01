@@ -67,6 +67,7 @@ func New(cfg *config.Config, st *store.Store, log *slog.Logger, dist fs.FS) (htt
 	r.Use(securityHeaders(cfg.AppURL.Scheme == "https"))
 
 	r.Get("/healthz", s.healthz)
+	r.Get("/branding/{kind}", s.handleBranding)
 	r.Route("/api", func(r chi.Router) {
 		// NPM's auth_request subrequest: no CSRF token, and any HTTP method.
 		r.HandleFunc("/auth/nginx", s.handleForwardAuth)
@@ -100,6 +101,9 @@ func New(cfg *config.Config, st *store.Store, log *slog.Logger, dist fs.FS) (htt
 				r.Put("/settings", s.handleUpdateSettings)
 				r.Post("/settings/test-discord", s.handleTestDiscord)
 				r.Post("/settings/test-mail", s.handleTestMail)
+				r.Put("/appearance", s.handleUpdateAppearance)
+				r.Post("/appearance/{kind}", s.handleUploadBranding)
+				r.Delete("/appearance/{kind}", s.handleDeleteBranding)
 			})
 		})
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
@@ -154,7 +158,7 @@ func (s *Server) spa(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache")
-	w.Write(s.index)
+	w.Write(s.renderIndex(r.Context()))
 }
 
 func securityHeaders(https bool) func(http.Handler) http.Handler {

@@ -16,6 +16,7 @@ Everything runs in **one container**: a Go backend and a Svelte frontend in a si
   - manage users (access per site, block, unlock, reset password, delete)
   - add sites with a ready-to-paste NPM config and a **Copy** button
   - audit log of every admin action
+- **Your own look:** logo, site name, accent color, font and background (image, color or gradient), set in the admin panel with a live preview
 - **Email** via any SMTP provider (Resend recommended): verify addresses, reset passwords
 - **Discord notifications** for new accounts and access requests
 - **Security:** argon2id, server-side sessions, CSRF protection, rate limits, lockout, open-redirect protection, strict security headers; see [SECURITY.md](SECURITY.md)

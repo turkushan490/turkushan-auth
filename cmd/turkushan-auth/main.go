@@ -101,7 +101,7 @@ func run(log *slog.Logger) error {
 		Addr:              fmt.Sprintf(":%d", cfg.Port),
 		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
-		ReadTimeout:       15 * time.Second,
+		ReadTimeout:       60 * time.Second, // leaves room for an 8 MB background upload on a slow line
 		WriteTimeout:      30 * time.Second,
 		IdleTimeout:       120 * time.Second,
 	}

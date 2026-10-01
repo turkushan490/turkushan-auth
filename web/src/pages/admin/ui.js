@@ -1,5 +1,5 @@
 // Shared class strings for the admin pages, so buttons and cards look the same everywhere.
-export const card = 'rounded-xl border border-zinc-800 bg-zinc-900/60';
+export const card = 'rounded-xl border border-zinc-800 bg-zinc-900/80';
 export const btn =
   'inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50';
 export const btnPrimary = `${btn} bg-indigo-500 text-white hover:bg-indigo-400`;

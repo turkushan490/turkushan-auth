@@ -1,5 +1,7 @@
 <script>
-  import { app, link, navigate } from '../../lib/state.svelte.js';
+  import { app, link, look, navigate } from '../../lib/state.svelte.js';
+  import Logo from '../../components/Logo.svelte';
+  import Appearance from './Appearance.svelte';
   import { api } from '../../lib/api.js';
   import Requests from './Requests.svelte';
   import Users from './Users.svelte';
@@ -11,6 +13,7 @@
     { id: 'requests', label: 'Requests', path: '/admin' },
     { id: 'users', label: 'Users', path: '/admin/users' },
     { id: 'sites', label: 'Sites', path: '/admin/sites' },
+    { id: 'appearance', label: 'Appearance', path: '/admin/appearance' },
     { id: 'settings', label: 'Settings', path: '/admin/settings' },
     { id: 'audit', label: 'Audit log', path: '/admin/audit' },
   ];
@@ -39,17 +42,13 @@
   });
 </script>
 
-<div class="min-h-screen bg-zinc-950 text-zinc-100">
+<!-- A custom background stays visible behind the panel, dimmed so tables remain readable. -->
+<div class="min-h-screen text-zinc-100 {look().bg_type && look().bg_type !== 'default' ? 'bg-zinc-950/75' : ''}">
   <header class="sticky top-0 z-40 border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur">
     <div class="mx-auto flex h-14 max-w-5xl items-center justify-between gap-4 px-4">
       <a href="/" onclick={link} class="flex min-w-0 items-center gap-2.5">
-        <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-indigo-500/15 text-indigo-400 ring-1 ring-indigo-400/20">
-          <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="4" y="11" width="16" height="10" rx="2" />
-            <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-          </svg>
-        </span>
-        <span class="truncate text-sm font-semibold">{app.session?.brand}</span>
+        <Logo appearance={look()} size="sm" />
+        <span class="truncate text-sm font-semibold">{look().site_name || app.session?.brand}</span>
         <span class="rounded-full bg-zinc-800 px-2 py-0.5 text-xs font-medium text-zinc-400">Admin</span>
       </a>
       <div class="flex items-center gap-3 text-sm">
@@ -98,6 +97,8 @@
       <Users {data} reload={load} />
     {:else if tab === 'sites'}
       <Sites {data} reload={load} />
+    {:else if tab === 'appearance'}
+      <Appearance />
     {:else if tab === 'settings'}
       <Settings {data} reload={load} />
     {:else}

@@ -31,12 +31,12 @@ func newTestServer(t *testing.T) (http.Handler, *store.Store) {
 		t.Fatal(err)
 	}
 	dist := fstest.MapFS{
-		"index.html":      {Data: []byte("<!doctype html><title>spa</title>")},
+		"index.html":      {Data: []byte(`<!doctype html><link rel="icon" type="image/svg+xml" href="/favicon.svg" /><title>Login</title><div id="spa"></div>`)},
 		"assets/app-1.js": {Data: []byte("console.log(1)")},
 		"favicon.svg":     {Data: []byte("<svg/>")},
 	}
 	appURL, _ := url.Parse("https://auth.example.com")
-	cfg := &config.Config{AppURL: appURL, CookieDomain: ".example.com"}
+	cfg := &config.Config{AppURL: appURL, CookieDomain: ".example.com", DataDir: t.TempDir()}
 	st := store.New(d)
 	h, err := New(cfg, st, slog.New(slog.NewTextHandler(io.Discard, nil)), dist)
 	if err != nil {
@@ -130,7 +130,7 @@ func TestSPA(t *testing.T) {
 
 	for _, p := range []string{"/", "/login", "/admin/users", "/index.html"} {
 		rec := get(http.MethodGet, p)
-		if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "<title>spa</title>") {
+		if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `<div id="spa">`) {
 			t.Errorf("%s: got %d %q", p, rec.Code, rec.Body.String())
 		}
 	}

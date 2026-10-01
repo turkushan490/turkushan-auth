@@ -12,7 +12,8 @@ The examples use `example.com`. Replace it with your own domain.
 - [5. Approving users](#5-approving-users)
 - [6. Email (verification and password reset)](#6-email-verification-and-password-reset)
 - [7. Discord notifications](#7-discord-notifications)
-- [8. Updates, backups and recovery](#8-updates-backups-and-recovery)
+- [8. Make it yours: logo, colors and background](#8-make-it-yours-logo-colors-and-background)
+- [9. Updates, backups and recovery](#9-updates-backups-and-recovery)
 - [Troubleshooting](#troubleshooting)
 
 ---
@@ -97,13 +98,14 @@ Open `https://auth.example.com` and sign in with `ADMIN_USER` / `ADMIN_PASSWORD`
 
 In **Admin panel → Settings**, set **Portal address for NPM** to how NPM reaches the container, e.g. `http://192.168.0.6:3010`. It's filled into every NPM config the panel generates.
 
-The admin panel has five tabs:
+The admin panel has six tabs:
 
 | Tab | What you do there |
 |---|---|
 | **Requests** | Approve or deny who may open which site. |
 | **Users** | Per user: give or take access per site, block/unblock, unlock, reset password, delete. |
 | **Sites** | Add sites, choose the rules, copy the NPM config. |
+| **Appearance** | Logo, site name, colors, font and background. |
 | **Settings** | Portal address, email, Discord. |
 | **Audit log** | Every admin action with time, admin and IP. |
 
@@ -247,11 +249,34 @@ Get a message when someone creates an account or asks for access to a site.
 
 ---
 
-## 8. Updates, backups and recovery
+## 8. Make it yours: logo, colors and background
+
+Admin panel → **Appearance**. Everything you change shows right away as a preview on the page and in the small sign-in preview; it goes live for everyone when you click **Save**.
+
+| Setting | What it does |
+|---|---|
+| **Logo** | Replaces the lock icon above the sign-in card and in the admin header, and becomes the browser tab icon. PNG, JPG, WebP, GIF or SVG, max 1 MB. A transparent PNG or SVG looks best. |
+| **Site name** | The text under the logo. Default: your domain. |
+| **Browser tab title** | The title in the browser tab. Default: the site name. |
+| **Accent color** | The color of buttons, links and highlights. Pick a preset or any color. |
+| **Font** | System default, Inter, Montserrat, Space Grotesk, Nunito, Outfit or JetBrains Mono. The fonts are built in; nothing is loaded from other servers. |
+| **Background** | **Default** (dark with a soft glow), a plain **Color**, a **Gradient** of two colors, or your own **Image** (PNG, JPG or WebP, max 8 MB). |
+| **Darken image** | A slider to darken a background image so the text stays readable. |
+
+Tips:
+
+- Use a wide image of about 1920×1080. On phones it's cropped around the center to fill the screen, so keep the important part in the middle.
+- Dark backgrounds work best: the text on the pages is light.
+- The look applies to all pages, including the admin panel (dimmed there, so tables stay readable).
+- **Reset** goes back to the default look. Uploaded images stay until you remove them.
+
+---
+
+## 9. Updates, backups and recovery
 
 **Updates:** every change to the project builds a new `latest` image. Unraid shows **update ready** on the Docker tab; click it to update. Your data stays.
 
-**Backup:** everything lives in the appdata folder (`/mnt/user/appdata/turkushan-auth`): the SQLite database (`turkushan-auth.db`) and the generated secret. Back up that folder, for example with the Appdata Backup plugin.
+**Backup:** everything lives in the appdata folder (`/mnt/user/appdata/turkushan-auth`): the SQLite database (`turkushan-auth.db`), the generated secret and your uploaded logo and background (`branding/`). Back up that folder, for example with the Appdata Backup plugin.
 
 **Reinstall:**
 - Keep the appdata folder → all users, sites and settings stay. `ADMIN_PASSWORD` isn't needed.

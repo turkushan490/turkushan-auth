@@ -31,6 +31,11 @@ func (s *Server) handleSession(w http.ResponseWriter, r *http.Request) {
 		"brand":         s.redirectBase,
 		"authenticated": false,
 	}
+	a, err := s.loadAppearance(r.Context())
+	if err != nil {
+		s.log.Error("load appearance", "err", err)
+	}
+	resp["appearance"] = s.appearanceJSON(a)
 	if u := s.currentUser(r); u != nil {
 		resp["authenticated"] = true
 		resp["user"] = userJSON(u)

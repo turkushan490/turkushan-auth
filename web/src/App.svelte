@@ -1,5 +1,7 @@
 <script>
-  import { app, refreshSession } from './lib/state.svelte.js';
+  import { app, look, refreshSession } from './lib/state.svelte.js';
+  import { applyAppearance } from './lib/appearance.js';
+  import Backdrop from './components/Backdrop.svelte';
   import Login from './pages/Login.svelte';
   import Register from './pages/Register.svelte';
   import Account from './pages/Account.svelte';
@@ -12,6 +14,11 @@
   import Toast from './components/Toast.svelte';
 
   refreshSession();
+
+  // Accent color, font, tab title and icon follow the saved look (or the admin's live preview).
+  $effect(() => {
+    if (!app.loading) applyAppearance(look());
+  });
 
   const page = $derived.by(() => {
     const signedIn = app.session?.authenticated;
@@ -30,8 +37,10 @@
   });
 </script>
 
+<Backdrop appearance={look()} />
+
 {#if app.loading}
-  <div class="grid min-h-screen place-items-center bg-zinc-950">
+  <div class="grid min-h-screen place-items-center">
     <svg class="size-6 animate-spin text-zinc-600" viewBox="0 0 24 24" fill="none" aria-label="Loading">
       <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" class="opacity-25" />
       <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round" />

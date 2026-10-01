@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./fonts.css";
 
 @theme {
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -6,4 +7,9 @@
 
 html {
   color-scheme: dark;
+}
+
+/* Buttons on the accent color: black text when the admin picks a light accent (see lib/appearance.js). */
+.bg-indigo-500.text-white {
+  color: var(--accent-fg, #fff) !important;
 }

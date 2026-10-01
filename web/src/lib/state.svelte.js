@@ -6,7 +6,13 @@ export const app = $state({
   path: location.pathname,
   flash: '', // one-off message for the next page, e.g. "You're logged out."
   toast: null, // { text, kind, id } shown bottom-right for a few seconds
+  preview: null, // unsaved appearance being tried out in Admin panel → Appearance
 });
+
+// The look to render right now: the admin's unsaved draft, else what's saved.
+export function look() {
+  return app.preview || app.session?.appearance || {};
+}
 
 export function toast(text, kind = 'success') {
   const id = Date.now() + Math.random();
