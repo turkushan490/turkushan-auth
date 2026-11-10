@@ -1,0 +1,18 @@
+{
+  "copy_link": "Eller kopiér dette link:",
+  "verify.title": "Bekræft din e-mailadresse",
+  "verify.intro": "Hej {user}, klik på knappen for at bekræfte, at dette er din e-mailadresse til {site}.",
+  "verify.button": "Bekræft e-mail",
+  "verify.footer": "Linket virker i 24 timer. Har du ikke bedt om dette? Så kan du ignorere denne mail.",
+  "reset.title": "Nulstil din adgangskode",
+  "reset.intro": "Hej {user}, nogen (forhåbentlig dig) har bedt om at nulstille din adgangskode til {site}. Klik på knappen for at vælge en ny.",
+  "reset.button": "Vælg en ny adgangskode",
+  "reset.footer": "Linket virker i 1 time og kun én gang. Har du ikke bedt om dette? Ignorer denne mail; din adgangskode forbliver den samme.",
+  "invite.title": "Du er inviteret",
+  "invite.intro": "{admin} har oprettet en konto til dig på {site}. Dit brugernavn er {user}. Klik på knappen for at vælge din adgangskode.",
+  "invite.button": "Vælg min adgangskode",
+  "invite.footer": "Linket virker i 3 dage og kun én gang.",
+  "test.title": "Testmail",
+  "test.intro": "E-mail fra din loginportal virker. Mails om bekræftelse og nulstilling af adgangskode ser sådan ud.",
+  "test.footer": "Sendt fra adminpanelet."
+}

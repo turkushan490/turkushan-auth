@@ -1,0 +1,18 @@
+{
+  "copy_link": "Veya bu bağlantıyı kopyala:",
+  "verify.title": "E-posta adresini doğrula",
+  "verify.intro": "Merhaba {user}, bunun {site} için e-posta adresin olduğunu onaylamak için düğmeye tıkla.",
+  "verify.button": "E-postayı doğrula",
+  "verify.footer": "Bağlantı 24 saat geçerli. Bunu sen istemediysen bu e-postayı yok sayabilirsin.",
+  "reset.title": "Şifreni sıfırla",
+  "reset.intro": "Merhaba {user}, biri (umarız sen) {site} için şifreni sıfırlamak istedi. Yeni bir şifre seçmek için düğmeye tıkla.",
+  "reset.button": "Yeni şifre seç",
+  "reset.footer": "Bağlantı 1 saat geçerli ve yalnızca bir kez kullanılabilir. Bunu sen istemediysen bu e-postayı yok say; şifren aynı kalır.",
+  "invite.title": "Davet edildin",
+  "invite.intro": "{admin}, {site} üzerinde senin için bir hesap oluşturdu. Kullanıcı adın: {user}. Şifreni seçmek için düğmeye tıkla.",
+  "invite.button": "Şifremi seç",
+  "invite.footer": "Bağlantı 3 gün geçerli ve yalnızca bir kez kullanılabilir.",
+  "test.title": "Test e-postası",
+  "test.intro": "Giriş portalından e-posta gönderimi çalışıyor. Doğrulama ve şifre sıfırlama e-postaları böyle görünecek.",
+  "test.footer": "Yönetim panelinden gönderildi."
+}

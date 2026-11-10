@@ -399,6 +399,16 @@ Tips:
 - The look applies to all pages, including the admin panel (dimmed there, so tables stay readable).
 - **Reset** goes back to the default look. Uploaded images stay until you remove them.
 
+### Languages
+
+The portal comes in 25 languages, and every visitor gets their browser's language automatically. People can switch with the globe button at the top of the sign-in page or under **Language** on their account page. Their choice is remembered, and the mails the portal sends them use it too.
+
+In **Admin panel → Appearance → Language** you choose:
+- **Default language**: for visitors whose browser language isn't offered.
+- **Offered languages**: tick only the languages you want in the picker. Leave all unticked to offer all of them.
+
+Click **Save**, like for the rest of the look.
+
 ---
 
 ## 11. Updates, backups and recovery

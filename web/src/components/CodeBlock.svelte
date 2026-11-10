@@ -1,4 +1,5 @@
 <script>
+  import { t } from '../lib/i18n.svelte.js';
   let { code, title = '' } = $props();
   let copied = $state(false);
 
@@ -31,10 +32,10 @@
     >
       {#if copied}
         <svg viewBox="0 0 24 24" class="size-3.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7" /></svg>
-        Copied
+        {t('comp.copied')}
       {:else}
         <svg viewBox="0 0 24 24" class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></svg>
-        Copy
+        {t('comp.copy')}
       {/if}
     </button>
   </div>

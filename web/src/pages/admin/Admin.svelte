@@ -10,21 +10,23 @@
   import Sites from './Sites.svelte';
   import Settings from './Settings.svelte';
   import Audit from './Audit.svelte';
+  import { t } from '../../lib/i18n.svelte.js';
 
+  // label is a translation key, translated in the template so it follows language changes.
   const tabs = [
-    { id: 'requests', label: 'Requests', path: '/admin' },
-    { id: 'users', label: 'Users', path: '/admin/users' },
-    { id: 'groups', label: 'Groups', path: '/admin/groups' },
-    { id: 'sites', label: 'Sites', path: '/admin/sites' },
-    { id: 'appearance', label: 'Appearance', path: '/admin/appearance' },
-    { id: 'settings', label: 'Settings', path: '/admin/settings' },
-    { id: 'audit', label: 'Audit log', path: '/admin/audit' },
+    { id: 'requests', label: 'admin.tab_requests', path: '/admin' },
+    { id: 'users', label: 'admin.tab_users', path: '/admin/users' },
+    { id: 'groups', label: 'admin.tab_groups', path: '/admin/groups' },
+    { id: 'sites', label: 'admin.tab_sites', path: '/admin/sites' },
+    { id: 'appearance', label: 'admin.tab_appearance', path: '/admin/appearance' },
+    { id: 'settings', label: 'admin.tab_settings', path: '/admin/settings' },
+    { id: 'audit', label: 'admin.tab_audit', path: '/admin/audit' },
   ];
   // Only the tabs this person has rights for; the first one is the start page.
-  const myTabs = $derived(data ? tabs.filter((t) => visibleTabs(data).includes(t.id)) : []);
+  const myTabs = $derived(data ? tabs.filter((tb) => visibleTabs(data).includes(tb.id)) : []);
   const tab = $derived.by(() => {
-    const wanted = tabs.find((t) => t.path === app.path.replace(/\/$/, ''))?.id;
-    if (myTabs.some((t) => t.id === wanted)) return wanted;
+    const wanted = tabs.find((tb) => tb.path === app.path.replace(/\/$/, ''))?.id;
+    if (myTabs.some((tb) => tb.id === wanted)) return wanted;
     return myTabs[0]?.id || '';
   });
 
@@ -59,28 +61,28 @@
       <a href="/" onclick={link} class="flex min-w-0 items-center gap-2.5">
         <Logo appearance={look()} size="sm" />
         <span class="truncate text-sm font-semibold">{look().site_name || app.session?.brand}</span>
-        <span class="rounded-full bg-zinc-800 px-2 py-0.5 text-xs font-medium text-zinc-400">Admin</span>
+        <span class="rounded-full bg-zinc-800 px-2 py-0.5 text-xs font-medium text-zinc-400">{t('admin.badge')}</span>
       </a>
       <div class="flex items-center gap-3 text-sm">
         <span class="hidden text-zinc-400 sm:inline">{app.session?.user?.username}</span>
-        <a href="/logout" onclick={link} class="rounded-lg px-2.5 py-1.5 text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100">Sign out</a>
+        <a href="/logout" onclick={link} class="rounded-lg px-2.5 py-1.5 text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100">{t('admin.sign_out')}</a>
       </div>
     </div>
-    <nav class="mx-auto flex max-w-5xl gap-1 overflow-x-auto px-4" aria-label="Admin sections">
-      {#each myTabs as t}
+    <nav class="mx-auto flex max-w-5xl gap-1 overflow-x-auto px-4" aria-label={t('admin.sections')}>
+      {#each myTabs as tb}
         <a
-          href={t.id === myTabs[0]?.id ? '/admin' : t.path}
+          href={tb.id === myTabs[0]?.id ? '/admin' : tb.path}
           onclick={link}
-          aria-current={tab === t.id ? 'page' : undefined}
-          class="relative flex shrink-0 items-center gap-2 px-3 py-3 text-sm font-medium transition {tab === t.id ? 'text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'}"
+          aria-current={tab === tb.id ? 'page' : undefined}
+          class="relative flex shrink-0 items-center gap-2 px-3 py-3 text-sm font-medium transition {tab === tb.id ? 'text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'}"
         >
-          {t.label}
-          {#if t.id === 'requests' && counts.requests > 0}
+          {t(tb.label)}
+          {#if tb.id === 'requests' && counts.requests > 0}
             <span class="rounded-full bg-amber-500/20 px-1.5 text-xs font-semibold text-amber-300">{counts.requests}</span>
-          {:else if (t.id === 'users' || t.id === 'sites' || t.id === 'groups') && data}
-            <span class="text-xs text-zinc-600">{counts[t.id]}</span>
+          {:else if (tb.id === 'users' || tb.id === 'sites' || tb.id === 'groups') && data}
+            <span class="text-xs text-zinc-600">{counts[tb.id]}</span>
           {/if}
-          {#if tab === t.id}
+          {#if tab === tb.id}
             <span class="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-indigo-500"></span>
           {/if}
         </a>
@@ -92,11 +94,11 @@
     {#if error}
       <div class="rounded-xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-200">
         {error}
-        <a href="/" onclick={link} class="ml-2 underline underline-offset-2">Back</a>
+        <a href="/" onclick={link} class="ms-2 underline underline-offset-2">{t('admin.back')}</a>
       </div>
     {:else if !data}
       <div class="grid place-items-center py-24">
-        <svg class="size-6 animate-spin text-zinc-600" viewBox="0 0 24 24" fill="none" aria-label="Loading">
+        <svg class="size-6 animate-spin text-zinc-600" viewBox="0 0 24 24" fill="none" aria-label={t('admin.loading')}>
           <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" class="opacity-25" />
           <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
         </svg>
@@ -119,7 +121,7 @@
   </main>
   {#if data?.version}
     <footer class="mx-auto max-w-5xl px-4 pb-8 text-xs text-zinc-500">
-      turkushan-auth {data.version === 'dev' ? 'dev build' : 'v' + data.version}
+      turkushan-auth {data.version === 'dev' ? t('admin.dev_build') : t('admin.version', { version: data.version })}
     </footer>
   {/if}
 </div>

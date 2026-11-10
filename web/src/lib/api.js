@@ -1,11 +1,20 @@
+import { errorText, t } from './i18n.svelte.js';
+
 function cookie(name) {
   const m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
   return m ? decodeURIComponent(m[1]) : '';
 }
 
+// The server sends {"error": "English text", "code": "bad_login"}; show our translation
+// of the code when there is one. data.code stays available for pages that react to it.
+function localizeError(data) {
+  if (data.error || data.code) data.error = errorText(data);
+  return data;
+}
+
 // api('/session') GETs; api('/login', {...}) POSTs JSON; api(path, body, 'PUT' | 'DELETE') for the rest.
 // Every non-GET carries the CSRF token. Always resolves to { ok, status, data };
-// data.error holds a message for the user.
+// data.error holds a message for the user, in their language when the server gave a code.
 export async function api(path, body, method) {
   method = method || (body === undefined ? 'GET' : 'POST');
   const opts = { method, headers: { Accept: 'application/json' }, credentials: 'same-origin' };
@@ -19,7 +28,7 @@ export async function api(path, body, method) {
   try {
     res = await fetch('/api' + path, opts);
   } catch {
-    return { ok: false, status: 0, data: { error: 'Cannot reach the server. Check your connection.' } };
+    return { ok: false, status: 0, data: { error: t('err.offline') } };
   }
   let data = {};
   try {
@@ -27,7 +36,15 @@ export async function api(path, body, method) {
   } catch {
     // non-JSON response, e.g. a proxy error page
   }
-  if (!res.ok && !data.error) data.error = `Something went wrong (${res.status}).`;
+  if (!res.ok) {
+    if (!data.error && !data.code) data.error = t('err.status', { status: res.status });
+    else localizeError(data);
+  } else if (data.message && data.code) {
+    // Success messages with a code: {"message": "Email address removed.", "code": "email_removed"}.
+    const key = 'msg.' + data.code;
+    const text = t(key, data);
+    if (text !== key) data.message = text;
+  }
   return { ok: res.ok, status: res.status, data };
 }
 
@@ -42,12 +59,13 @@ export async function apiDownload(path, fallbackName) {
       body: '{}',
     });
   } catch {
-    return { ok: false, error: 'Cannot reach the server. Check your connection.' };
+    return { ok: false, error: t('err.offline') };
   }
   if (!res.ok) {
-    let error = `Download failed (${res.status}).`;
+    let error = t('err.download', { status: res.status });
     try {
-      error = (await res.json()).error || error;
+      const data = await res.json();
+      if (data.error || data.code) error = errorText(data);
     } catch {
       // not JSON
     }
@@ -74,7 +92,7 @@ export async function apiUpload(path, file) {
       body: file,
     });
   } catch {
-    return { ok: false, status: 0, data: { error: 'Upload failed. Check your connection.' } };
+    return { ok: false, status: 0, data: { error: t('err.upload_offline') } };
   }
   let data = {};
   try {
@@ -82,6 +100,9 @@ export async function apiUpload(path, file) {
   } catch {
     // e.g. the proxy refused the upload
   }
-  if (!res.ok && !data.error) data.error = res.status === 413 ? 'That file is too big.' : `Upload failed (${res.status}).`;
+  if (!res.ok) {
+    if (!data.error && !data.code) data.error = res.status === 413 ? t('err.too_big') : t('err.upload', { status: res.status });
+    else localizeError(data);
+  }
   return { ok: res.ok, status: res.status, data };
 }

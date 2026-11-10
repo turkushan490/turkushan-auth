@@ -14,6 +14,7 @@
   import Welcome from './pages/Welcome.svelte';
   import Toast from './components/Toast.svelte';
   import ConfirmHost from './components/ConfirmHost.svelte';
+  import { t } from './lib/i18n.svelte.js';
 
   refreshSession();
 
@@ -44,7 +45,7 @@
 
 {#if app.loading}
   <div class="grid min-h-screen place-items-center">
-    <svg class="size-6 animate-spin text-zinc-600" viewBox="0 0 24 24" fill="none" aria-label="Loading">
+    <svg class="size-6 animate-spin text-zinc-600" viewBox="0 0 24 24" fill="none" aria-label={t('common.loading')}>
       <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" class="opacity-25" />
       <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
     </svg>

@@ -5,6 +5,7 @@
   import SubmitButton from '../components/SubmitButton.svelte';
   import { api } from '../lib/api.js';
   import { link, navigate, withRD, toast } from '../lib/state.svelte.js';
+  import { t } from '../lib/i18n.svelte.js';
 
   const params = new URLSearchParams(location.search);
   const host = params.get('site') || '';
@@ -60,7 +61,7 @@
     };
   });
 
-  const siteName = $derived(result?.site?.name || host || 'this site');
+  const siteName = $derived(result?.site?.name || host || t('pending.this_site'));
 
   // Only link to a registered site's own host; rd is used if it points there.
   const openURL = $derived.by(() => {
@@ -90,7 +91,7 @@
     busy = true;
     const r = await api('/account/email/resend', { rd: openURL });
     busy = false;
-    toast(r.ok ? 'Mail sent again. Check your inbox.' : r.data.error, r.ok ? 'success' : 'error');
+    toast(r.ok ? t('pending.resent') : r.data.error, r.ok ? 'success' : 'error');
   }
 
   function changeAddress() {
@@ -100,12 +101,12 @@
   }
 
   const views = {
-    ok: { tone: 'emerald', title: 'You have access', icon: 'check' },
-    pending: { tone: 'amber', title: 'Waiting for approval', icon: 'clock' },
-    denied: { tone: 'rose', title: 'No access', icon: 'x' },
-    unknown_site: { tone: 'zinc', title: 'Site not set up', icon: 'question' },
-    email_required: { tone: 'sky', title: 'Email address needed', icon: 'mail' },
-    error: { tone: 'rose', title: 'Something went wrong', icon: 'x' },
+    ok: { tone: 'emerald', title: 'pending.title_ok', icon: 'check' },
+    pending: { tone: 'amber', title: 'pending.title_pending', icon: 'clock' },
+    denied: { tone: 'rose', title: 'pending.title_denied', icon: 'x' },
+    unknown_site: { tone: 'zinc', title: 'pending.title_unknown', icon: 'question' },
+    email_required: { tone: 'sky', title: 'pending.title_email', icon: 'mail' },
+    error: { tone: 'rose', title: 'pending.title_error', icon: 'x' },
   };
   const toneClass = {
     emerald: 'bg-emerald-500/15 text-emerald-400 ring-emerald-400/20',
@@ -116,9 +117,9 @@
   };
   const view = $derived(result ? views[result.status] || views.error : null);
   const title = $derived.by(() => {
-    if (!view) return 'Checking access…';
-    if (result.status !== 'email_required') return view.title;
-    return { intro: 'Email address needed', form: 'Add your email address', sent: 'Check your inbox' }[emailStep];
+    if (!view) return t('pending.checking_access');
+    if (result.status !== 'email_required') return t(view.title);
+    return t({ intro: 'pending.title_email', form: 'pending.title_form', sent: 'pending.title_sent' }[emailStep]);
   });
 
   const primaryBtn = 'flex w-full items-center justify-center rounded-lg bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:opacity-60';
@@ -127,42 +128,41 @@
 
 <AuthLayout {title}>
   {#if !result}
-    <p class="text-sm text-zinc-400">One moment…</p>
+    <p class="text-sm text-zinc-400">{t('common.one_moment')}</p>
   {:else if result.status === 'email_required'}
     <!-- Two clear steps: 1. add your email, 2. click the link in the mail. -->
     <div class="space-y-5">
       <ol class="flex items-center gap-2 text-xs font-medium">
         <li class="flex items-center gap-1.5 {emailStep === 'sent' ? 'text-emerald-400' : 'text-indigo-300'}">
           <span class="grid size-5 place-items-center rounded-full {emailStep === 'sent' ? 'bg-emerald-500/20' : 'bg-indigo-500/25'}">{emailStep === 'sent' ? '✓' : '1'}</span>
-          Add your email
+          {t('pending.step1')}
         </li>
         <li class="h-px flex-1 bg-zinc-700" aria-hidden="true"></li>
         <li class="flex items-center gap-1.5 {emailStep === 'sent' ? 'text-indigo-300' : 'text-zinc-500'}">
           <span class="grid size-5 place-items-center rounded-full {emailStep === 'sent' ? 'bg-indigo-500/25' : 'bg-zinc-800'}">2</span>
-          Click the link in the mail
+          {t('pending.step2')}
         </li>
       </ol>
 
       {#if !result.mail_ready}
-        <Alert>Email isn't set up on this portal yet, so you can't verify an address. Ask the admin.</Alert>
+        <Alert>{t('pending.mail_not_ready')}</Alert>
       {:else if emailStep === 'intro'}
         <p class="text-sm leading-relaxed text-zinc-300">
-          To open <span class="font-semibold text-zinc-100">{siteName}</span> you need an email address on your account.
-          Add it here and we'll send you a link to confirm it.
+          {t('pending.intro_a')} <span class="font-semibold text-zinc-100">{siteName}</span> {t('pending.intro_b')}
         </p>
-        <button type="button" class={primaryBtn} onclick={() => (emailStep = 'form')}>Add my email address</button>
+        <button type="button" class={primaryBtn} onclick={() => (emailStep = 'form')}>{t('pending.add_email')}</button>
       {:else if emailStep === 'form'}
         <form class="space-y-4" onsubmit={saveEmail}>
           {#if emailError}<Alert>{emailError}</Alert>{/if}
-          <Field label="Your email address" type="email" name="email" autocomplete="email" required bind:value={email}
-            hint="We'll send a mail with a link to this address." />
-          <SubmitButton {busy}>Send verification link</SubmitButton>
+          <Field label={t('pending.your_email')} type="email" name="email" autocomplete="email" required bind:value={email}
+            hint={t('pending.email_hint')} />
+          <SubmitButton {busy}>{t('common.send_verification')}</SubmitButton>
         </form>
       {:else}
         <div class="rounded-xl border border-sky-500/25 bg-sky-500/10 p-4 text-sm leading-relaxed text-sky-100">
-          <p class="font-semibold">We sent a mail to {result.email}</p>
+          <p class="font-semibold">{t('pending.sent_to', { email: result.email })}</p>
           <p class="mt-1 text-sky-200/90">
-            Open it and click <span class="font-semibold">Verify email</span>. You then go on to {siteName} automatically.
+            {t('pending.open_click_a')} <span class="font-semibold">{t('pending.verify_button')}</span>{t('pending.open_click_b', { name: siteName })}
           </p>
         </div>
         <p class="flex items-center gap-2 text-xs text-zinc-500">
@@ -170,12 +170,12 @@
             <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" class="opacity-25" />
             <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
           </svg>
-          Waiting for you to click the link… No mail? Check your spam folder.
+          {t('pending.waiting_click')}
         </p>
         <div class="space-y-2">
-          <button type="button" class={secondaryBtn} onclick={resend} disabled={busy}>Send the mail again</button>
+          <button type="button" class={secondaryBtn} onclick={resend} disabled={busy}>{t('pending.send_again')}</button>
           <button type="button" class="w-full text-center text-sm font-medium text-zinc-400 hover:text-zinc-200" onclick={changeAddress}>
-            Use a different address
+            {t('pending.other_address')}
           </button>
         </div>
       {/if}
@@ -193,15 +193,14 @@
         </div>
         <p class="text-sm leading-relaxed text-zinc-300">
           {#if result.status === 'ok'}
-            You can open <span class="font-semibold text-zinc-100">{siteName}</span>.
+            {t('pending.ok_a')} <span class="font-semibold text-zinc-100">{siteName}</span>{t('pending.ok_b')}
           {:else if result.status === 'pending'}
-            Your request to open <span class="font-semibold text-zinc-100">{siteName}</span> has been sent to the admin.
-            This page continues automatically as soon as it's approved.
+            {t('pending.pending_a')} <span class="font-semibold text-zinc-100">{siteName}</span> {t('pending.pending_b')}
           {:else if result.status === 'denied'}
-            The admin has not given you access to <span class="font-semibold text-zinc-100">{siteName}</span>.
+            {t('pending.denied_a')} <span class="font-semibold text-zinc-100">{siteName}</span>{t('pending.denied_b')}
           {:else if result.status === 'unknown_site'}
-            <span class="font-mono text-zinc-100">{host || 'This site'}</span> is not set up in the login portal.
-            {#if result.is_admin}Add it in the admin panel under Sites.{:else}Ask the admin to add it.{/if}
+            <span class="font-mono text-zinc-100">{host || t('pending.this_site_start')}</span> {t('pending.unknown')}
+            {#if result.is_admin}{t('pending.unknown_admin')}{:else}{t('pending.unknown_ask')}{/if}
           {:else}
             {result.error}
           {/if}
@@ -210,19 +209,19 @@
 
       <div class="space-y-2">
         {#if result.status === 'ok' && openURL}
-          <a href={openURL} class={primaryBtn}>Open {siteName}</a>
+          <a href={openURL} class={primaryBtn}>{t('pending.open', { name: siteName })}</a>
         {:else if result.status === 'pending'}
           <button type="button" onclick={() => check()} disabled={checking} class={secondaryBtn}>
-            {checking ? 'Checking…' : 'Check again'}
+            {checking ? t('pending.checking') : t('pending.check_again')}
           </button>
         {:else if result.status === 'unknown_site' && result.is_admin}
-          <a href="/admin/sites" onclick={link} class={primaryBtn}>Go to Sites</a>
+          <a href="/admin/sites" onclick={link} class={primaryBtn}>{t('pending.go_sites')}</a>
         {/if}
       </div>
     </div>
   {/if}
 
   {#snippet footer()}
-    <a href="/" onclick={link} class="font-medium text-zinc-400 hover:text-zinc-200">Your account</a>
+    <a href="/" onclick={link} class="font-medium text-zinc-400 hover:text-zinc-200">{t('pending.your_account')}</a>
   {/snippet}
 </AuthLayout>

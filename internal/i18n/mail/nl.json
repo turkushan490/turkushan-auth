@@ -1,0 +1,18 @@
+{
+  "copy_link": "Of kopieer deze link:",
+  "verify.title": "Bevestig je e-mailadres",
+  "verify.intro": "Hoi {user}, klik op de knop om te bevestigen dat dit je e-mailadres is voor {site}.",
+  "verify.button": "E-mailadres bevestigen",
+  "verify.footer": "De link werkt 24 uur. Heb je dit niet aangevraagd? Dan kun je deze mail negeren.",
+  "reset.title": "Wachtwoord resetten",
+  "reset.intro": "Hoi {user}, iemand (hopelijk jij) heeft gevraagd om je wachtwoord voor {site} te resetten. Klik op de knop om een nieuw wachtwoord te kiezen.",
+  "reset.button": "Nieuw wachtwoord kiezen",
+  "reset.footer": "De link werkt 1 uur en maar één keer. Heb je dit niet aangevraagd? Negeer dan deze mail; je wachtwoord blijft hetzelfde.",
+  "invite.title": "Je bent uitgenodigd",
+  "invite.intro": "{admin} heeft een account voor je gemaakt op {site}. Je gebruikersnaam is {user}. Klik op de knop om je wachtwoord te kiezen.",
+  "invite.button": "Mijn wachtwoord kiezen",
+  "invite.footer": "De link werkt 3 dagen en maar één keer.",
+  "test.title": "Testmail",
+  "test.intro": "E-mail vanuit je loginportaal werkt. Bevestigings- en wachtwoordresetmails zien er zo uit.",
+  "test.footer": "Verstuurd vanuit het beheerpaneel."
+}

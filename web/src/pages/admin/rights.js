@@ -1,13 +1,26 @@
 // What the signed-in staff member may do; mirrors store.Rights on the server (which enforces it).
 
+import { t } from '../../lib/i18n.svelte.js';
+
+// Labels for each right. The getters translate on every read, so the text follows the
+// current language: permLabels[perm].name / .hint.
+const permEntry = (key) => ({
+  get name() {
+    return t(`rights.${key}`);
+  },
+  get hint() {
+    return t(`rights.${key}_hint`);
+  },
+});
+
 export const permLabels = {
-  approve: { name: 'Approve requests', hint: 'Approve or deny access requests for every site.' },
-  users: { name: 'Manage users', hint: 'Create users, block, reset passwords, delete.' },
-  groups: { name: 'Manage groups & rules', hint: 'Create groups, change their members and auto-add rules.' },
-  sites: { name: 'Manage sites', hint: 'Add, change and remove sites and see the NPM config.' },
-  settings: { name: 'Settings', hint: 'Email, Discord and login settings.' },
-  appearance: { name: 'Appearance', hint: 'Logo, colors, font and background.' },
-  audit: { name: 'View audit log', hint: 'See who did what in the admin panel.' },
+  approve: permEntry('approve'),
+  users: permEntry('users'),
+  groups: permEntry('groups'),
+  sites: permEntry('sites'),
+  settings: permEntry('settings'),
+  appearance: permEntry('appearance'),
+  audit: permEntry('audit'),
 };
 
 export const can = (data, perm) => data.me.admin || data.me.perms.includes(perm);
@@ -18,14 +31,14 @@ export const canApproveAny = (data) => can(data, 'approve') || data.me.approve_s
 
 // Which tabs this person gets.
 export function visibleTabs(data) {
-  const t = [];
-  if (canApproveAny(data) || can(data, 'users')) t.push('requests');
-  if (can(data, 'users') || can(data, 'groups')) t.push('users', 'groups');
-  if (can(data, 'sites')) t.push('sites');
-  if (can(data, 'appearance')) t.push('appearance');
-  if (can(data, 'settings')) t.push('settings');
-  if (can(data, 'audit')) t.push('audit');
-  return t;
+  const tabs = [];
+  if (canApproveAny(data) || can(data, 'users')) tabs.push('requests');
+  if (can(data, 'users') || can(data, 'groups')) tabs.push('users', 'groups');
+  if (can(data, 'sites')) tabs.push('sites');
+  if (can(data, 'appearance')) tabs.push('appearance');
+  if (can(data, 'settings')) tabs.push('settings');
+  if (can(data, 'audit')) tabs.push('audit');
+  return tabs;
 }
 
 // A user's standing for one site, the same way the server decides access:
@@ -53,15 +66,20 @@ export function groupsOpening(data, u, site) {
   return groupsOf(data, u).filter((g) => openers.has(g.id));
 }
 
-export const standingText = {
-  admin: 'admin',
-  open: 'has access',
-  approved: 'approved',
-  group: 'via group',
-  pending: 'pending',
-  denied: 'denied',
-  'needs email': 'needs verified email',
+// standingText[st] gives the translated label; the getters read the current language.
+const standingKeys = {
+  admin: 'rights.standing_admin',
+  open: 'rights.standing_open',
+  approved: 'rights.standing_approved',
+  group: 'rights.standing_group',
+  pending: 'rights.standing_pending',
+  denied: 'rights.standing_denied',
+  'needs email': 'rights.standing_needs_email',
 };
+export const standingText = {};
+for (const [st, key] of Object.entries(standingKeys)) {
+  Object.defineProperty(standingText, st, { get: () => t(key), enumerable: true });
+}
 
 export const standingBadge = {
   admin: 'bg-indigo-500/15 text-indigo-300 ring-indigo-400/20',

@@ -1,10 +1,11 @@
 <script>
   import { app } from '../lib/state.svelte.js';
   import ProviderIcon from './ProviderIcon.svelte';
+  import { t } from '../lib/i18n.svelte.js';
 
   // "Continue with Discord / Google" for the logins the admin has set up.
-  // rd: where to go after signing in. link: connect to the signed-in account. only: limit to these providers.
-  let { rd = '', link = false, only = null, verb = 'Continue with' } = $props();
+  // rd: where to go after signing in. link: connect to the signed-in account ("Connect Discord"). only: limit to these providers.
+  let { rd = '', link = false, only = null } = $props();
 
   const labels = { discord: 'Discord', google: 'Google' };
   const providers = $derived((app.session?.providers || []).filter((p) => !only || only.includes(p)));
@@ -28,7 +29,7 @@
           : 'bg-white text-zinc-800 hover:bg-zinc-200'}"
       >
         <ProviderIcon provider={p} />
-        {verb} {labels[p]}
+        {link ? t('comp.provider_connect', { name: labels[p] }) : t('comp.provider_continue', { name: labels[p] })}
       </a>
     {/each}
   </div>

@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.3.0 (2026-11-10)
+
+The portal now speaks 25 languages.
+
+### New
+- **25 languages.** English, Dutch, Turkish, German, French, Spanish, Portuguese, Italian, Polish, Russian, Ukrainian, Arabic, Persian, Hindi, Japanese, Korean, Chinese (Simplified and Traditional), Indonesian, Vietnamese, Thai, Swedish, Danish, Norwegian and Finnish.
+  - Arabic and Persian are shown right to left.
+  - Dates and "5 minutes ago" texts follow the chosen language.
+- **Language picker with search.** It's on the sign-in pages (globe at the top) and on the account page. Type "turk", "Türkçe" or "tr" to find a language; arrow keys and Enter work too.
+  - The portal starts in the visitor's browser language.
+  - A language someone picks is remembered in their browser and on their account.
+- **Mails in your language.** Verification, password reset and invite mails go out in the language the person chose. For invites, that's the portal default.
+- **Language settings for admins.** In **Admin panel → Appearance → Language**, set a default language for visitors whose browser language isn't offered, and choose which languages are offered.
+- **Translated server messages.** Error messages from the server ("Wrong username or password.", "Too many attempts…") and account messages now come with a code, so the web app can show them translated.
+
+The translations were made with machine help. Corrections are welcome as a pull request (`web/src/locales/<code>.json`, `internal/i18n/mail/<code>.json`).
+
 ## 1.2.0 (2026-11-10)
 
 Easier and safer to use, with screen readers and keyboard too.

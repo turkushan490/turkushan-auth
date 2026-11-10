@@ -1,0 +1,18 @@
+{
+  "copy_link": "Eller kopier denne lenken:",
+  "verify.title": "Bekreft e-postadressen din",
+  "verify.intro": "Hei {user}, klikk på knappen for å bekrefte at dette er e-postadressen din for {site}.",
+  "verify.button": "Bekreft e-post",
+  "verify.footer": "Lenken fungerer i 24 timer. Ba du ikke om dette? Da kan du ignorere denne e-posten.",
+  "reset.title": "Tilbakestill passordet ditt",
+  "reset.intro": "Hei {user}, noen (forhåpentligvis deg) ba om å tilbakestille passordet ditt for {site}. Klikk på knappen for å velge et nytt.",
+  "reset.button": "Velg et nytt passord",
+  "reset.footer": "Lenken fungerer i 1 time og bare én gang. Ba du ikke om dette? Ignorer denne e-posten; passordet ditt forblir det samme.",
+  "invite.title": "Du er invitert",
+  "invite.intro": "{admin} har opprettet en konto til deg på {site}. Brukernavnet ditt er {user}. Klikk på knappen for å velge passordet ditt.",
+  "invite.button": "Velg passordet mitt",
+  "invite.footer": "Lenken fungerer i 3 dager og bare én gang.",
+  "test.title": "Test-e-post",
+  "test.intro": "E-post fra innloggingsportalen din fungerer. E-poster for bekreftelse og tilbakestilling av passord ser slik ut.",
+  "test.footer": "Sendt fra adminpanelet."
+}

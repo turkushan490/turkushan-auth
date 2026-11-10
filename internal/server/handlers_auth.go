@@ -9,6 +9,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/turkushan490/turkushan-auth/internal/auth"
+	"github.com/turkushan490/turkushan-auth/internal/i18n"
 	"github.com/turkushan490/turkushan-auth/internal/store"
 )
 
@@ -21,7 +22,34 @@ func userJSON(u *store.User) map[string]any {
 		"email":          u.Email,
 		"email_verified": u.EmailVerified,
 		"has_password":   u.PasswordHash != "",
+		"lang":           u.Lang,
 	}
+}
+
+// handleSetLanguage stores the language picked in the web app, so the mails
+// the portal sends this person are in that language too. "" = follow the browser.
+func (s *Server) handleSetLanguage(w http.ResponseWriter, r *http.Request) {
+	u := s.currentUser(r)
+	if u == nil {
+		writeError(w, http.StatusUnauthorized, "Please sign in.")
+		return
+	}
+	var req struct {
+		Lang string `json:"lang"`
+	}
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	lang := i18n.Canonical(req.Lang)
+	if req.Lang != "" && lang == "" {
+		writeError(w, http.StatusBadRequest, "Unknown language.")
+		return
+	}
+	if err := s.store.SetLang(r.Context(), u.ID, lang); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"lang": lang})
 }
 
 // handleSession tells the frontend who is logged in and hands out the CSRF cookie.
@@ -148,6 +176,7 @@ type registerRequest struct {
 	Password string `json:"password"`
 	Email    string `json:"email"`
 	RD       string `json:"rd"`
+	Lang     string `json:"lang"` // the language picked in the web app, if any
 }
 
 func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
@@ -195,6 +224,12 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	lang := i18n.Canonical(req.Lang)
+	if lang != "" {
+		if err := s.store.SetLang(ctx, id, lang); err != nil {
+			s.log.Error("save language", "err", err)
+		}
+	}
 	s.log.Info("user registered", "username", username, "ip", ip)
 	if err := s.store.SyncRuleGroups(ctx, id); err != nil {
 		s.log.Error("apply group rules", "err", err)
@@ -206,7 +241,8 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 	// Best effort: the account works without it, and the user can send it again later.
 	if email != "" && s.mailReady(ctx) {
-		if err := s.sendVerification(ctx, &store.User{ID: id, Username: username}, email, req.RD); err != nil {
+		newUser := &store.User{ID: id, Username: username, Lang: lang}
+		if err := s.sendVerification(ctx, newUser, email, req.RD, s.mailLang(ctx, newUser, r)); err != nil {
 			s.log.Warn("verification mail after sign-up failed", "err", err)
 		}
 	}

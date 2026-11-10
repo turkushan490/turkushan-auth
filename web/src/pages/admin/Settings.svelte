@@ -4,6 +4,7 @@
   import { confirmDialog } from '../../lib/confirm.svelte.js';
   import { toast } from '../../lib/state.svelte.js';
   import { card, btnGhost, btnPrimary, btnDanger, input, label } from './ui.js';
+  import { t } from '../../lib/i18n.svelte.js';
 
   let { data, reload } = $props();
 
@@ -30,7 +31,7 @@
     e.preventDefault();
     const ok = await save(
       { smtp_host: smtpHost, smtp_port: Number(smtpPort), smtp_username: smtpUser, smtp_password: smtpPassword, smtp_from: smtpFrom },
-      'Email settings saved.',
+      t('settings.mail.saved'),
       'mail',
     );
     if (ok) smtpPassword = '';
@@ -45,21 +46,21 @@
   async function saveLogin(e, name) {
     e.preventDefault();
     const label = data.settings.oauth[name].label;
-    if (await save({ oauth: { [name]: oauthDraft[name] } }, `Sign in with ${label} is on.`, 'oauth-' + name)) oauthDraft[name].client_secret = '';
+    if (await save({ oauth: { [name]: oauthDraft[name] } }, t('settings.oauth.on_toast', { name: label }), 'oauth-' + name)) oauthDraft[name].client_secret = '';
   }
 
   async function removeLogin(name) {
     const label = data.settings.oauth[name].label;
-    if (!(await confirmDialog({ title: `Turn off sign in with ${label}?`, text: `People who only use ${label} can't sign in until you turn it back on.`, ok: 'Turn off', danger: true }))) return;
-    if (await save({ oauth: { [name]: { remove: true } } }, `Sign in with ${label} is off.`, 'oauth-' + name)) oauthDraft[name] = { client_id: '', client_secret: '' };
+    if (!(await confirmDialog({ title: t('settings.oauth.off_title', { name: label }), text: t('settings.oauth.off_text', { name: label }), ok: t('settings.oauth.turn_off'), danger: true }))) return;
+    if (await save({ oauth: { [name]: { remove: true } } }, t('settings.oauth.off_toast', { name: label }), 'oauth-' + name)) oauthDraft[name] = { client_id: '', client_secret: '' };
   }
 
   async function copy(text) {
     try {
       await navigator.clipboard.writeText(text);
-      toast('Copied.');
+      toast(t('settings.copied'));
     } catch {
-      toast('Could not copy. Select the text and copy it yourself.', 'error');
+      toast(t('settings.copy_failed'), 'error');
     }
   }
 
@@ -68,7 +69,7 @@
     busy = 'testmail';
     const r = await api('/admin/settings/test-mail', { to: testTo });
     busy = '';
-    toast(r.ok ? `Test mail sent to ${testTo}. Check the inbox (and spam).` : r.data.error, r.ok ? 'success' : 'error');
+    toast(r.ok ? t('settings.mail.test_sent', { to: testTo }) : r.data.error, r.ok ? 'success' : 'error');
   }
 
   async function save(body, okText, which) {
@@ -86,17 +87,17 @@
 
   function savePortal(e) {
     e.preventDefault();
-    save({ portal_url: portalURL }, 'Portal address saved. The NPM configs are updated.', 'portal');
+    save({ portal_url: portalURL }, t('settings.portal.saved'), 'portal');
   }
 
   async function saveWebhook(e) {
     e.preventDefault();
-    if (await save({ discord_webhook: webhook }, 'Discord webhook saved.', 'webhook')) webhook = '';
+    if (await save({ discord_webhook: webhook }, t('settings.webhook.saved'), 'webhook')) webhook = '';
   }
 
   async function removeWebhook() {
-    if (await confirmDialog({ title: 'Remove the Discord webhook?', text: 'You will no longer get notifications.', ok: 'Remove', danger: true })) {
-      save({ discord_webhook: '' }, 'Discord webhook removed.', 'webhook');
+    if (await confirmDialog({ title: t('settings.webhook.remove_title'), text: t('settings.webhook.remove_text'), ok: t('settings.remove'), danger: true })) {
+      save({ discord_webhook: '' }, t('settings.webhook.removed'), 'webhook');
     }
   }
 
@@ -111,96 +112,96 @@
     busy = 'test';
     const r = await api('/admin/settings/test-discord', {});
     busy = '';
-    toast(r.ok ? 'Test message sent. Check your Discord channel.' : r.data.error, r.ok ? 'success' : 'error');
+    toast(r.ok ? t('settings.webhook.test_sent') : r.data.error, r.ok ? 'success' : 'error');
   }
 </script>
 
 <div class="space-y-6">
   <section class="{card} p-5 sm:p-6">
-    <h2 class="font-semibold">Portal address for NPM</h2>
+    <h2 class="font-semibold">{t('settings.portal.title')}</h2>
     <p class="mt-1 text-sm text-zinc-400">
-      How Nginx Proxy Manager reaches this container. It's filled into the NPM config of every site.
+      {t('settings.portal.intro')}
     </p>
     <form class="mt-4 flex flex-col gap-2 sm:flex-row" onsubmit={savePortal}>
-      <label class="sr-only" for="portal-url">Portal address</label>
+      <label class="sr-only" for="portal-url">{t('settings.portal.label')}</label>
       <input id="portal-url" class={input} bind:value={portalURL} placeholder="http://192.168.0.6:3010" autocapitalize="off" spellcheck="false" />
-      <button type="submit" class="{btnPrimary} shrink-0" disabled={busy !== ''}>Save</button>
+      <button type="submit" class="{btnPrimary} shrink-0" disabled={busy !== ''}>{t('settings.save')}</button>
     </form>
   </section>
 
   {#if !data.me.admin}
     <section class="{card} p-5 text-sm text-zinc-400 sm:p-6">
-      <h2 class="font-semibold text-zinc-100">Email and Discord/Google sign-in</h2>
-      <p class="mt-1">Only admins can change these, because they decide where password-reset mails go.</p>
+      <h2 class="font-semibold text-zinc-100">{t('settings.admin_only_title')}</h2>
+      <p class="mt-1">{t('settings.admin_only_text')}</p>
     </section>
   {:else}
   <section class="{card} p-5 sm:p-6">
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h2 class="font-semibold">Email</h2>
-        <p class="mt-1 text-sm text-zinc-400">Used for email verification and "forgot password" mails.</p>
+        <h2 class="font-semibold">{t('settings.mail.title')}</h2>
+        <p class="mt-1 text-sm text-zinc-400">{t('settings.mail.intro')}</p>
       </div>
       {#if data.settings.smtp.ready}
         <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-medium text-emerald-300 ring-1 ring-emerald-500/25">
-          <span class="size-1.5 rounded-full bg-emerald-400"></span> Set up
+          <span class="size-1.5 rounded-full bg-emerald-400"></span> {t('settings.status.set_up')}
         </span>
       {:else}
-        <span class="rounded-full bg-zinc-800 px-2.5 py-1 text-xs font-medium text-zinc-400">Not set</span>
+        <span class="rounded-full bg-zinc-800 px-2.5 py-1 text-xs font-medium text-zinc-400">{t('settings.status.not_set')}</span>
       {/if}
     </div>
 
     <form class="mt-4 space-y-4" onsubmit={saveMail}>
       <div class="flex flex-wrap items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950/40 px-3 py-2.5 text-sm text-zinc-400">
-        Using Resend?
-        <button type="button" class={btnGhost} onclick={useResend}>Fill in Resend</button>
-        <span class="text-xs text-zinc-500">then paste your Resend API key as the password.</span>
+        {t('settings.mail.resend_q')}
+        <button type="button" class={btnGhost} onclick={useResend}>{t('settings.mail.resend_fill')}</button>
+        <span class="text-xs text-zinc-500">{t('settings.mail.resend_then')}</span>
       </div>
       <div class="grid gap-4 sm:grid-cols-[1fr_8rem]">
         <div>
-          <label class={label} for="smtp-host">Mail server</label>
+          <label class={label} for="smtp-host">{t('settings.mail.server')}</label>
           <input id="smtp-host" class={input} bind:value={smtpHost} placeholder="smtp.resend.com" autocapitalize="off" spellcheck="false" />
         </div>
         <div>
-          <label class={label} for="smtp-port">Port</label>
+          <label class={label} for="smtp-port">{t('settings.mail.port')}</label>
           <input id="smtp-port" class={input} type="number" min="1" max="65535" bind:value={smtpPort} />
         </div>
       </div>
       <div class="grid gap-4 sm:grid-cols-2">
         <div>
-          <label class={label} for="smtp-user">Username</label>
+          <label class={label} for="smtp-user">{t('settings.mail.username')}</label>
           <input id="smtp-user" class={input} bind:value={smtpUser} placeholder="resend" autocomplete="off" autocapitalize="off" spellcheck="false" />
         </div>
         <div>
-          <label class={label} for="smtp-pass">Password / API key</label>
+          <label class={label} for="smtp-pass">{t('settings.mail.password')}</label>
           <input id="smtp-pass" class={input} type="password" bind:value={smtpPassword} autocomplete="new-password"
-            placeholder={data.settings.smtp.password_set ? '•••••••• saved, leave empty to keep' : 're_…'} />
+            placeholder={data.settings.smtp.password_set ? t('settings.secret_saved') : 're_…'} />
         </div>
       </div>
       <div>
-        <label class={label} for="smtp-from">Send as</label>
+        <label class={label} for="smtp-from">{t('settings.mail.from')}</label>
         <input id="smtp-from" class={input} bind:value={smtpFrom} placeholder="noreply@{data.settings.base_domain}" autocapitalize="off" spellcheck="false" />
         <p class="mt-1.5 text-xs text-zinc-500">
-          Must be on a domain you verified at your mail provider. Add a name like <span class="font-mono">{data.settings.base_domain} &lt;noreply@{data.settings.base_domain}&gt;</span>.
+          {t('settings.mail.from_help')} <span class="font-mono">{data.settings.base_domain} &lt;noreply@{data.settings.base_domain}&gt;</span>{t('settings.sentence_end')}
         </p>
       </div>
       <div class="flex justify-end">
-        <button type="submit" class={btnPrimary} disabled={busy !== ''}>{busy === 'mail' ? 'Saving…' : 'Save'}</button>
+        <button type="submit" class={btnPrimary} disabled={busy !== ''}>{busy === 'mail' ? t('settings.saving') : t('settings.save')}</button>
       </div>
     </form>
 
     {#if data.settings.smtp.ready}
       <form class="mt-4 flex flex-col gap-2 border-t border-zinc-800 pt-4 sm:flex-row" onsubmit={testMail}>
-        <label class="sr-only" for="test-to">Send a test mail to</label>
-        <input id="test-to" type="email" class={input} bind:value={testTo} placeholder="Send a test mail to…" required />
-        <button type="submit" class="{btnGhost} shrink-0" disabled={busy !== ''}>{busy === 'testmail' ? 'Sending…' : 'Send test mail'}</button>
+        <label class="sr-only" for="test-to">{t('settings.mail.test_label')}</label>
+        <input id="test-to" type="email" class={input} bind:value={testTo} placeholder={t('settings.mail.test_placeholder')} required />
+        <button type="submit" class="{btnGhost} shrink-0" disabled={busy !== ''}>{busy === 'testmail' ? t('settings.sending') : t('settings.mail.test_button')}</button>
       </form>
     {/if}
   </section>
 
   <section class="{card} p-5 sm:p-6">
-    <h2 class="font-semibold">Sign in with Discord or Google</h2>
+    <h2 class="font-semibold">{t('settings.oauth.title')}</h2>
     <p class="mt-1 text-sm text-zinc-400">
-      Adds "Continue with …" buttons to the sign-in page. New people still need approval or a group before they can open a site.
+      {t('settings.oauth.intro')}
     </p>
 
     <div class="mt-4 space-y-4">
@@ -212,54 +213,54 @@
             <h3 class="font-medium">{o.label}</h3>
             {#if on}
               <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-medium text-emerald-300 ring-1 ring-emerald-500/25">
-                <span class="size-1.5 rounded-full bg-emerald-400"></span> On
+                <span class="size-1.5 rounded-full bg-emerald-400"></span> {t('settings.status.on')}
               </span>
             {:else}
-              <span class="rounded-full bg-zinc-800 px-2.5 py-1 text-xs font-medium text-zinc-400">Off</span>
+              <span class="rounded-full bg-zinc-800 px-2.5 py-1 text-xs font-medium text-zinc-400">{t('settings.status.off')}</span>
             {/if}
           </div>
 
           <div class="mt-3">
-            <span class={label}>Redirect URL <span class="text-xs font-normal text-zinc-500">(paste this at {o.label})</span></span>
+            <span class={label}>{t('settings.oauth.redirect')} <span class="text-xs font-normal text-zinc-500">{t('settings.oauth.paste_at', { name: o.label })}</span></span>
             <div class="flex gap-2">
-              <input class="{input} font-mono text-xs" value={o.redirect_uri} readonly onfocus={(e) => e.currentTarget.select()} aria-label="Redirect URL for {o.label}" />
-              <button type="button" class="{btnGhost} shrink-0" onclick={() => copy(o.redirect_uri)}>Copy</button>
+              <input class="{input} font-mono text-xs" value={o.redirect_uri} readonly onfocus={(e) => e.currentTarget.select()} aria-label={t('settings.oauth.redirect_aria', { name: o.label })} />
+              <button type="button" class="{btnGhost} shrink-0" onclick={() => copy(o.redirect_uri)}>{t('settings.copy')}</button>
             </div>
           </div>
           <div class="mt-3 grid gap-3 sm:grid-cols-2">
             <div>
-              <label class={label} for="oauth-id-{name}">Client ID</label>
+              <label class={label} for="oauth-id-{name}">{t('settings.oauth.client_id')}</label>
               <input id="oauth-id-{name}" class={input} bind:value={oauthDraft[name].client_id} autocomplete="off" autocapitalize="off" spellcheck="false" required />
             </div>
             <div>
-              <label class={label} for="oauth-secret-{name}">Client secret</label>
+              <label class={label} for="oauth-secret-{name}">{t('settings.oauth.client_secret')}</label>
               <input id="oauth-secret-{name}" type="password" class={input} bind:value={oauthDraft[name].client_secret} autocomplete="new-password"
-                placeholder={o.secret_set ? '•••••••• saved, leave empty to keep' : ''} required={!o.secret_set} />
+                placeholder={o.secret_set ? t('settings.secret_saved') : ''} required={!o.secret_set} />
             </div>
           </div>
 
           <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
             <button type="button" class="text-sm font-medium text-indigo-400 hover:text-indigo-300" onclick={() => (howTo = howTo === name ? '' : name)}>
-              {howTo === name ? 'Hide' : 'How do I get these?'}
+              {howTo === name ? t('settings.oauth.hide') : t('settings.oauth.how')}
             </button>
             <div class="flex gap-2">
-              {#if o.client_id}<button type="button" class={btnDanger} onclick={() => removeLogin(name)} disabled={busy !== ''}>Turn off</button>{/if}
-              <button type="submit" class={btnPrimary} disabled={busy !== ''}>{busy === 'oauth-' + name ? 'Saving…' : 'Save'}</button>
+              {#if o.client_id}<button type="button" class={btnDanger} onclick={() => removeLogin(name)} disabled={busy !== ''}>{t('settings.oauth.turn_off')}</button>{/if}
+              <button type="submit" class={btnPrimary} disabled={busy !== ''}>{busy === 'oauth-' + name ? t('settings.saving') : t('settings.save')}</button>
             </div>
           </div>
 
           {#if howTo === name}
-            <ol class="mt-3 list-decimal space-y-1.5 rounded-lg bg-zinc-950/50 p-4 pl-8 text-sm text-zinc-300">
+            <ol class="mt-3 list-decimal space-y-1.5 rounded-lg bg-zinc-950/50 p-4 ps-8 text-sm text-zinc-300">
               {#if name === 'discord'}
-                <li>Go to <span class="font-mono text-xs">discord.com/developers/applications</span> and click <b>New Application</b>.</li>
-                <li>Open <b>OAuth2</b> in the menu. Under <b>Redirects</b>, click <b>Add Redirect</b> and paste the Redirect URL from above. Save.</li>
-                <li>Copy the <b>Client ID</b>. Click <b>Reset Secret</b> and copy the <b>Client Secret</b>.</li>
-                <li>Paste both here and click Save.</li>
+                <li>{t('settings.discord.step1_a')} <span class="font-mono text-xs">discord.com/developers/applications</span> {t('settings.discord.step1_b')} <b>New Application</b>{t('settings.sentence_end')}</li>
+                <li>{t('settings.discord.step2_a')} <b>OAuth2</b> {t('settings.discord.step2_b')} <b>Redirects</b>{t('settings.discord.step2_c')} <b>Add Redirect</b> {t('settings.discord.step2_d')}</li>
+                <li>{t('settings.discord.step3_a')} <b>Client ID</b>{t('settings.discord.step3_b')} <b>Reset Secret</b> {t('settings.discord.step3_c')} <b>Client Secret</b>{t('settings.sentence_end')}</li>
+                <li>{t('settings.discord.step4')}</li>
               {:else}
-                <li>Go to <span class="font-mono text-xs">console.cloud.google.com</span>, make a project, and open <b>APIs &amp; Services → OAuth consent screen</b>. Choose <b>External</b>, fill in the app name and your email, and publish the app.</li>
-                <li>Open <b>Credentials → Create credentials → OAuth client ID</b>, type <b>Web application</b>.</li>
-                <li>Under <b>Authorized redirect URIs</b>, add the Redirect URL from above. Create.</li>
-                <li>Copy the <b>Client ID</b> and <b>Client secret</b>, paste them here and click Save.</li>
+                <li>{t('settings.google.step1_a')} <span class="font-mono text-xs">console.cloud.google.com</span>{t('settings.google.step1_b')} <b>APIs &amp; Services → OAuth consent screen</b>{t('settings.google.step1_c')} <b>External</b>{t('settings.google.step1_d')}</li>
+                <li>{t('settings.google.step2_a')} <b>Credentials → Create credentials → OAuth client ID</b>{t('settings.google.step2_b')} <b>Web application</b>{t('settings.sentence_end')}</li>
+                <li>{t('settings.google.step3_a')} <b>Authorized redirect URIs</b>{t('settings.google.step3_b')}</li>
+                <li>{t('settings.google.step4_a')} <b>Client ID</b> {t('settings.google.step4_b')} <b>Client secret</b>{t('settings.google.step4_c')}</li>
               {/if}
             </ol>
           {/if}
@@ -272,55 +273,55 @@
   <section class="{card} p-5 sm:p-6">
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h2 class="font-semibold">Discord notifications</h2>
-        <p class="mt-1 text-sm text-zinc-400">Get a message when someone creates an account or asks for access to a site.</p>
+        <h2 class="font-semibold">{t('settings.webhook.title')}</h2>
+        <p class="mt-1 text-sm text-zinc-400">{t('settings.webhook.intro')}</p>
       </div>
       {#if data.settings.discord_webhook_set}
         <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-medium text-emerald-300 ring-1 ring-emerald-500/25">
-          <span class="size-1.5 rounded-full bg-emerald-400"></span> Connected
+          <span class="size-1.5 rounded-full bg-emerald-400"></span> {t('settings.status.connected')}
         </span>
       {:else}
-        <span class="rounded-full bg-zinc-800 px-2.5 py-1 text-xs font-medium text-zinc-400">Not set</span>
+        <span class="rounded-full bg-zinc-800 px-2.5 py-1 text-xs font-medium text-zinc-400">{t('settings.status.not_set')}</span>
       {/if}
     </div>
 
     <form class="mt-4 space-y-2" onsubmit={saveWebhook}>
-      <label class={label} for="webhook">{data.settings.discord_webhook_set ? 'Replace webhook URL' : 'Webhook URL'}</label>
+      <label class={label} for="webhook">{data.settings.discord_webhook_set ? t('settings.webhook.replace_label') : t('settings.webhook.label')}</label>
       <div class="flex flex-col gap-2 sm:flex-row">
         <input id="webhook" type="password" class={input} bind:value={webhook} placeholder="https://discord.com/api/webhooks/…" autocomplete="off" required />
-        <button type="submit" class="{btnPrimary} shrink-0" disabled={busy !== ''}>Save</button>
+        <button type="submit" class="{btnPrimary} shrink-0" disabled={busy !== ''}>{t('settings.save')}</button>
       </div>
-      <p class="text-xs text-zinc-500">In Discord: channel settings → Integrations → Webhooks → New Webhook → Copy Webhook URL.</p>
+      <p class="text-xs text-zinc-500">{t('settings.webhook.help')}</p>
     </form>
 
     {#if data.settings.discord_webhook_set}
       <div class="mt-4 flex gap-2 border-t border-zinc-800 pt-4">
-        <button class={btnGhost} onclick={testWebhook} disabled={busy !== ''}>{busy === 'test' ? 'Sending…' : 'Send test message'}</button>
-        <button class={btnDanger} onclick={removeWebhook} disabled={busy !== ''}>Remove</button>
+        <button class={btnGhost} onclick={testWebhook} disabled={busy !== ''}>{busy === 'test' ? t('settings.sending') : t('settings.webhook.test_button')}</button>
+        <button class={btnDanger} onclick={removeWebhook} disabled={busy !== ''}>{t('settings.remove')}</button>
       </div>
     {/if}
   </section>
 
   <section class="{card} p-5 sm:p-6">
-    <h2 class="font-semibold">Portal</h2>
+    <h2 class="font-semibold">{t('settings.info.title')}</h2>
     <dl class="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-[auto_1fr]">
-      <dt class="text-zinc-500">Portal URL</dt>
+      <dt class="text-zinc-500">{t('settings.info.url')}</dt>
       <dd class="font-mono text-zinc-300">{data.settings.app_url}</dd>
-      <dt class="text-zinc-500">Login works on</dt>
-      <dd class="font-mono text-zinc-300">{data.settings.base_domain} and *.{data.settings.base_domain}</dd>
+      <dt class="text-zinc-500">{t('settings.info.login_on')}</dt>
+      <dd class="font-mono text-zinc-300">{t('settings.info.login_on_value', { domain: data.settings.base_domain })}</dd>
     </dl>
-    <p class="mt-3 text-xs text-zinc-500">These come from the container settings in Unraid (APP_URL, COOKIE_DOMAIN).</p>
+    <p class="mt-3 text-xs text-zinc-500">{t('settings.info.help')}</p>
   </section>
 
   {#if data.me.admin}
     <section class="{card} p-5 sm:p-6">
-      <h2 class="font-semibold">Backup</h2>
+      <h2 class="font-semibold">{t('settings.backup.title')}</h2>
       <p class="mt-1 text-sm text-zinc-400">
-        Download a copy of the whole database: users, groups, sites and settings. Keep it somewhere safe, because it holds the password hashes and the mail and login secrets.
+        {t('settings.backup.intro')}
       </p>
       <div class="mt-4 flex flex-wrap items-center gap-3">
-        <button class={btnGhost} onclick={downloadBackup} disabled={busy !== ''}>{busy === 'backup' ? 'Preparing…' : 'Download backup'}</button>
-        <span class="text-xs text-zinc-500">Or on the server: <span class="font-mono">docker exec turkushan-auth /turkushan-auth backup</span></span>
+        <button class={btnGhost} onclick={downloadBackup} disabled={busy !== ''}>{busy === 'backup' ? t('settings.backup.preparing') : t('settings.backup.download')}</button>
+        <span class="text-xs text-zinc-500">{t('settings.backup.cli')} <span class="font-mono">docker exec turkushan-auth /turkushan-auth backup</span></span>
       </div>
     </section>
   {/if}

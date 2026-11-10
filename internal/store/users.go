@@ -30,12 +30,13 @@ type User struct {
 	IsAdmin        bool
 	Status         string // active | blocked
 	FailedAttempts int
-	LockedUntil    int64 // unix seconds, 0 when not locked
+	LockedUntil    int64  // unix seconds, 0 when not locked
+	Lang           string // chosen language, "" = not chosen
 }
 
 // userCols matches scanUser; queries alias the users table as u.
 const userCols = `u.id, u.username, u.password_hash, COALESCE(u.email, ''), u.email_verified_at IS NOT NULL,
-  u.is_admin, u.status, u.failed_attempts, COALESCE(u.locked_until, 0)`
+  u.is_admin, u.status, u.failed_attempts, COALESCE(u.locked_until, 0), u.lang`
 
 type scanner interface{ Scan(dest ...any) error }
 
@@ -44,7 +45,7 @@ func scanUser(sc scanner, extra ...any) (*User, error) {
 	u := &User{}
 	dest := append([]any{
 		&u.ID, &u.Username, &u.PasswordHash, &u.Email, &u.EmailVerified,
-		&u.IsAdmin, &u.Status, &u.FailedAttempts, &u.LockedUntil,
+		&u.IsAdmin, &u.Status, &u.FailedAttempts, &u.LockedUntil, &u.Lang,
 	}, extra...)
 	if err := sc.Scan(dest...); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -200,4 +201,10 @@ func (s *Store) BootstrapAdmin(ctx context.Context, rawUser, password string) (B
 		return "", err
 	}
 	return BootstrapPromoted, s.Audit(ctx, "system", "admin.promote", username, "promoted from ADMIN_USER", "")
+}
+
+// SetLang stores the language someone picked ("" = follow the browser).
+func (s *Store) SetLang(ctx context.Context, userID int64, lang string) error {
+	_, err := s.DB.ExecContext(ctx, `UPDATE users SET lang = ? WHERE id = ?`, lang, userID)
+	return err
 }

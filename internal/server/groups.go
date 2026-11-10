@@ -502,13 +502,10 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	if in.Invite {
 		token, err := s.store.CreateToken(ctx, id, store.TokenResetPassword, email, inviteTTL)
 		if err == nil {
-			err = s.sendMail(ctx, email, mailContent{
-				Title:  "You're invited",
-				Intro:  fmt.Sprintf("%s made an account for you on %s. Your username is %s. Click the button to choose your password.", adminFrom(r).Username, s.redirectBase, username),
-				Button: "Choose my password",
-				Link:   s.portalURL("/reset", url.Values{"token": {token}}) + "&invite=1",
-				Footer: "The link works for 3 days and only once.",
-			})
+			// The new person hasn't picked a language yet: the portal default.
+			err = s.sendMail(ctx, email, localMail(s.mailLang(ctx, nil, nil), "invite",
+				s.portalURL("/reset", url.Values{"token": {token}})+"&invite=1",
+				map[string]string{"admin": adminFrom(r).Username, "site": s.redirectBase, "user": username}))
 		}
 		if err != nil {
 			s.log.Error("send invite", "err", err)

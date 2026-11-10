@@ -5,6 +5,7 @@
   import Field from '../../components/Field.svelte';
   import PasswordRules from '../../components/PasswordRules.svelte';
   import { btnGhost, btnPrimary } from './ui.js';
+  import { t } from '../../lib/i18n.svelte.js';
 
   let { open = $bindable(false), user, reload } = $props();
 
@@ -29,23 +30,23 @@
       return;
     }
     open = false;
-    toast(`New password set for ${user.username}. Their sessions were signed out.`);
+    toast(t('users.reset_done', { name: user.username }));
     reload();
   }
 </script>
 
-<Modal bind:open title="Reset password for {user?.username}">
+<Modal bind:open title={t('users.reset_title', { name: user?.username })}>
   <form class="space-y-4" onsubmit={submit}>
     <p class="text-sm text-zinc-400">
-      Set a new password and send it to them yourself. They're signed out everywhere and can log in with the new password.
+      {t('users.reset_text')}
     </p>
-    <Field label="New password" type="password" autocomplete="new-password" required bind:value={password}>
+    <Field label={t('users.new_password')} type="password" autocomplete="new-password" required bind:value={password}>
       <PasswordRules {password} />
     </Field>
     {#if error}<p class="text-sm text-rose-400" role="alert">{error}</p>{/if}
     <div class="flex justify-end gap-2">
-      <button type="button" class={btnGhost} onclick={() => (open = false)}>Cancel</button>
-      <button type="submit" class={btnPrimary} disabled={busy}>Set password</button>
+      <button type="button" class={btnGhost} onclick={() => (open = false)}>{t('users.cancel')}</button>
+      <button type="submit" class={btnPrimary} disabled={busy}>{t('users.set_password')}</button>
     </div>
   </form>
 </Modal>

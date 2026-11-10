@@ -1,5 +1,6 @@
 <script>
   import { passwordRules } from '../lib/password.js';
+  import { t } from '../lib/i18n.svelte.js';
 
   let { password } = $props();
   const rules = $derived(passwordRules(password));
@@ -13,7 +14,7 @@
       {:else}
         <svg viewBox="0 0 24 24" class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="8" /></svg>
       {/if}
-      {rule.text}<span class="sr-only">{rule.ok ? ': done' : ': not yet'}</span>
+      {rule.text}<span class="sr-only">{rule.ok ? t('pw.done') : t('pw.not_yet')}</span>
     </li>
   {/each}
 </ul>

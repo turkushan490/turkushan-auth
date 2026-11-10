@@ -1,0 +1,18 @@
+{
+  "copy_link": "O copia este enlace:",
+  "verify.title": "Verifica tu dirección de correo",
+  "verify.intro": "Hola {user}, haz clic en el botón para confirmar que esta es tu dirección de correo en {site}.",
+  "verify.button": "Verificar correo",
+  "verify.footer": "El enlace funciona durante 24 horas. ¿No lo pediste? Entonces puedes ignorar este correo.",
+  "reset.title": "Restablece tu contraseña",
+  "reset.intro": "Hola {user}, alguien (esperamos que tú) pidió restablecer tu contraseña de {site}. Haz clic en el botón para elegir una nueva.",
+  "reset.button": "Elegir una contraseña nueva",
+  "reset.footer": "El enlace funciona durante 1 hora y solo una vez. ¿No lo pediste? Ignora este correo; tu contraseña sigue igual.",
+  "invite.title": "Te han invitado",
+  "invite.intro": "{admin} te creó una cuenta en {site}. Tu nombre de usuario es {user}. Haz clic en el botón para elegir tu contraseña.",
+  "invite.button": "Elegir mi contraseña",
+  "invite.footer": "El enlace funciona durante 3 días y solo una vez.",
+  "test.title": "Correo de prueba",
+  "test.intro": "El correo de tu portal de acceso funciona. Los correos de verificación y de restablecimiento de contraseña se verán así.",
+  "test.footer": "Enviado desde el panel de administración."
+}

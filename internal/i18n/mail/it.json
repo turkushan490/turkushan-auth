@@ -1,0 +1,18 @@
+{
+  "copy_link": "Oppure copia questo link:",
+  "verify.title": "Verifica il tuo indirizzo email",
+  "verify.intro": "Ciao {user}, clicca il pulsante per confermare che questo è il tuo indirizzo email per {site}.",
+  "verify.button": "Verifica email",
+  "verify.footer": "Il link funziona per 24 ore. Non l'hai chiesto tu? Allora puoi ignorare questa email.",
+  "reset.title": "Reimposta la tua password",
+  "reset.intro": "Ciao {user}, qualcuno (speriamo tu) ha chiesto di reimpostare la tua password per {site}. Clicca il pulsante per sceglierne una nuova.",
+  "reset.button": "Scegli una nuova password",
+  "reset.footer": "Il link funziona per 1 ora e una sola volta. Non l'hai chiesto tu? Ignora questa email: la tua password resta la stessa.",
+  "invite.title": "Sei stato invitato",
+  "invite.intro": "{admin} ha creato un account per te su {site}. Il tuo nome utente è {user}. Clicca il pulsante per scegliere la tua password.",
+  "invite.button": "Scegli la mia password",
+  "invite.footer": "Il link funziona per 3 giorni e una sola volta.",
+  "test.title": "Email di prova",
+  "test.intro": "L'email del tuo portale di accesso funziona. Le email di verifica e di reimpostazione password avranno questo aspetto.",
+  "test.footer": "Inviata dal pannello admin."
+}

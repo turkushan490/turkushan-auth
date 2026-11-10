@@ -1,0 +1,18 @@
+{
+  "copy_link": "Eller kopiera den här länken:",
+  "verify.title": "Verifiera din e-postadress",
+  "verify.intro": "Hej {user}, klicka på knappen för att bekräfta att det här är din e-postadress för {site}.",
+  "verify.button": "Verifiera e-post",
+  "verify.footer": "Länken fungerar i 24 timmar. Har du inte begärt det här? Då kan du ignorera mejlet.",
+  "reset.title": "Återställ ditt lösenord",
+  "reset.intro": "Hej {user}, någon (förhoppningsvis du) har begärt att återställa ditt lösenord för {site}. Klicka på knappen för att välja ett nytt.",
+  "reset.button": "Välj ett nytt lösenord",
+  "reset.footer": "Länken fungerar i 1 timme och bara en gång. Har du inte begärt det här? Ignorera mejlet; ditt lösenord förblir detsamma.",
+  "invite.title": "Du är inbjuden",
+  "invite.intro": "{admin} har skapat ett konto åt dig på {site}. Ditt användarnamn är {user}. Klicka på knappen för att välja ditt lösenord.",
+  "invite.button": "Välj mitt lösenord",
+  "invite.footer": "Länken fungerar i 3 dagar och bara en gång.",
+  "test.title": "Testmejl",
+  "test.intro": "E-post från din inloggningsportal fungerar. Mejl för verifiering och lösenordsåterställning kommer att se ut så här.",
+  "test.footer": "Skickat från adminpanelen."
+}

@@ -1,4 +1,6 @@
 <script>
+  import { t } from '../lib/i18n.svelte.js';
+
   let {
     label,
     value = $bindable(''),
@@ -21,7 +23,7 @@
 <div>
   <label for={id} class="mb-1.5 flex items-baseline justify-between text-sm font-medium text-zinc-300">
     {label}
-    {#if optional}<span class="text-xs font-normal text-zinc-500">optional</span>{/if}
+    {#if optional}<span class="text-xs font-normal text-zinc-500">{t('comp.optional')}</span>{/if}
   </label>
   <div class="relative">
     <input
@@ -34,14 +36,14 @@
       bind:value
       autocapitalize="off"
       spellcheck="false"
-      class="block w-full rounded-lg border border-zinc-700/80 bg-zinc-950/60 px-3 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 {isPassword ? 'pr-10' : ''}"
+      class="block w-full rounded-lg border border-zinc-700/80 bg-zinc-950/60 px-3 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 {isPassword ? 'pe-10' : ''}"
     />
     {#if isPassword}
       <button
         type="button"
-        class="absolute inset-y-0 right-0 grid w-10 place-items-center text-zinc-500 transition hover:text-zinc-300"
+        class="absolute inset-y-0 end-0 grid w-10 place-items-center text-zinc-500 transition hover:text-zinc-300"
         onclick={() => (show = !show)}
-        aria-label={show ? 'Hide password' : 'Show password'}
+        aria-label={show ? t('comp.hide_password') : t('comp.show_password')}
       >
         {#if show}
           <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

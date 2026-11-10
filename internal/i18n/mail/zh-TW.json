@@ -1,0 +1,18 @@
+{
+  "copy_link": "或複製此連結：",
+  "verify.title": "驗證你的電子郵件地址",
+  "verify.intro": "你好 {user}，請點擊按鈕，確認這是你在 {site} 使用的電子郵件地址。",
+  "verify.button": "驗證電子郵件",
+  "verify.footer": "連結 24 小時內有效。不是你操作的？忽略這封郵件即可。",
+  "reset.title": "重設你的密碼",
+  "reset.intro": "你好 {user}，有人（希望是你）要求重設你在 {site} 的密碼。請點擊按鈕設定新密碼。",
+  "reset.button": "設定新密碼",
+  "reset.footer": "連結 1 小時內有效，且只能使用一次。不是你操作的？忽略這封郵件，你的密碼不會改變。",
+  "invite.title": "你收到了邀請",
+  "invite.intro": "{admin} 在 {site} 為你建立了帳號。你的使用者名稱是 {user}。請點擊按鈕設定密碼。",
+  "invite.button": "設定我的密碼",
+  "invite.footer": "連結 3 天內有效，且只能使用一次。",
+  "test.title": "測試郵件",
+  "test.intro": "你的登入入口網站的電子郵件功能正常。驗證郵件和密碼重設郵件會是這個樣子。",
+  "test.footer": "由管理面板寄出。"
+}

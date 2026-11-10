@@ -1,0 +1,18 @@
+{
+  "copy_link": "Oder kopiere diesen Link:",
+  "verify.title": "Bestätige deine E-Mail-Adresse",
+  "verify.intro": "Hallo {user}, klicke auf den Button, um zu bestätigen, dass dies deine E-Mail-Adresse für {site} ist.",
+  "verify.button": "E-Mail bestätigen",
+  "verify.footer": "Der Link funktioniert 24 Stunden. Du hast das nicht angefordert? Dann kannst du diese Mail ignorieren.",
+  "reset.title": "Passwort zurücksetzen",
+  "reset.intro": "Hallo {user}, jemand (hoffentlich du) hat darum gebeten, dein Passwort für {site} zurückzusetzen. Klicke auf den Button, um ein neues zu wählen.",
+  "reset.button": "Neues Passwort wählen",
+  "reset.footer": "Der Link funktioniert 1 Stunde und nur einmal. Du hast das nicht angefordert? Ignoriere diese Mail; dein Passwort bleibt gleich.",
+  "invite.title": "Du bist eingeladen",
+  "invite.intro": "{admin} hat ein Konto für dich auf {site} erstellt. Dein Benutzername ist {user}. Klicke auf den Button, um dein Passwort zu wählen.",
+  "invite.button": "Mein Passwort wählen",
+  "invite.footer": "Der Link funktioniert 3 Tage und nur einmal.",
+  "test.title": "Test-Mail",
+  "test.intro": "E-Mail von deinem Login-Portal funktioniert. Bestätigungs- und Passwort-Reset-Mails sehen so aus.",
+  "test.footer": "Aus dem Admin-Bereich gesendet."
+}

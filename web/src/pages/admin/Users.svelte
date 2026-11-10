@@ -8,6 +8,7 @@
   import CreateUserModal from './CreateUserModal.svelte';
   import { card, btnGhost, btnPrimary } from './ui.js';
   import { can, standing, opens, groupsOf } from './rights.js';
+  import { t, tn } from '../../lib/i18n.svelte.js';
 
   let { data, reload } = $props();
 
@@ -114,26 +115,26 @@
     setAccess: (u, site, status) =>
       run(
         api('/admin/access', { user_id: u.id, site_id: site.id, status }, 'PUT'),
-        status === 'approved' ? `${u.username} can now open ${site.name}.` : `${u.username} is denied for ${site.name}.`,
+        status === 'approved' ? t('users.access_given', { name: u.username, site: site.name }) : t('users.access_denied', { name: u.username, site: site.name }),
       ),
     async setStatus(u, status) {
-      if (status === 'blocked' && !(await confirmDialog({ title: `Block ${u.username}?`, text: 'They are signed out everywhere and can’t sign in until you unblock them.', ok: 'Block', danger: true }))) return;
-      run(api(`/admin/users/${u.id}/status`, { status }, 'PUT'), status === 'blocked' ? `${u.username} is blocked.` : `${u.username} is unblocked.`);
+      if (status === 'blocked' && !(await confirmDialog({ title: t('users.block_title', { name: u.username }), text: t('users.block_text'), ok: t('users.block'), danger: true }))) return;
+      run(api(`/admin/users/${u.id}/status`, { status }, 'PUT'), status === 'blocked' ? t('users.blocked_toast', { name: u.username }) : t('users.unblocked_toast', { name: u.username }));
     },
     async setGroup(u, g, member) {
-      if (!member && !(await confirmDialog({ title: `Remove ${u.username} from ${g.name}?`, text: 'They lose the access and rights this group gives.', ok: 'Remove', danger: true }))) return;
-      run(api(`/admin/groups/${g.id}/members`, { user_id: u.id, member }, 'PUT'), member ? `${u.username} added to ${g.name}.` : `${u.username} removed from ${g.name}.`);
+      if (!member && !(await confirmDialog({ title: t('users.remove_group_title', { name: u.username, group: g.name }), text: t('users.remove_group_text'), ok: t('users.remove'), danger: true }))) return;
+      run(api(`/admin/groups/${g.id}/members`, { user_id: u.id, member }, 'PUT'), member ? t('users.group_added', { name: u.username, group: g.name }) : t('users.group_removed', { name: u.username, group: g.name }));
     },
     async setAdmin(u, admin) {
       const question = admin
-        ? { title: `Make ${u.username} an admin?`, text: 'Admins can do everything, including removing you as admin.', ok: 'Make admin' }
-        : { title: `Remove ${u.username} as admin?`, text: 'They keep their groups, but lose everything only admins can do.', ok: 'Remove admin', danger: true };
+        ? { title: t('users.make_admin_title', { name: u.username }), text: t('users.make_admin_text'), ok: t('users.make_admin') }
+        : { title: t('users.remove_admin_title', { name: u.username }), text: t('users.remove_admin_text'), ok: t('users.remove_admin'), danger: true };
       if (!(await confirmDialog(question))) return;
-      run(api(`/admin/users/${u.id}/admin`, { admin }, 'PUT'), admin ? `${u.username} is now an admin.` : `${u.username} is no longer an admin.`);
+      run(api(`/admin/users/${u.id}/admin`, { admin }, 'PUT'), admin ? t('users.admin_added', { name: u.username }) : t('users.admin_removed', { name: u.username }));
     },
     async remove(u) {
-      if (!(await confirmDialog({ title: `Delete ${u.username}?`, text: 'Their account and all their access are removed. This cannot be undone.', ok: 'Delete', danger: true }))) return;
-      run(api(`/admin/users/${u.id}`, undefined, 'DELETE'), `${u.username} was deleted.`);
+      if (!(await confirmDialog({ title: t('users.delete_title', { name: u.username }), text: t('users.delete_text'), ok: t('users.delete'), danger: true }))) return;
+      run(api(`/admin/users/${u.id}`, undefined, 'DELETE'), t('users.deleted', { name: u.username }));
     },
     openReset(u) {
       resetUser = u;
@@ -143,11 +144,11 @@
 </script>
 
 <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-  <h2 class="text-lg font-semibold tracking-tight">Users</h2>
+  <h2 class="text-lg font-semibold tracking-tight">{t('users.title')}</h2>
   {#if can(data, 'users')}
     <button class={btnPrimary} onclick={() => (createOpen = true)}>
       <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
-      Create user
+      {t('users.create_user')}
     </button>
   {/if}
 </div>
@@ -155,9 +156,9 @@
 <UserFilters {data} bind:search bind:siteFilter bind:groupFilter bind:loginFilter bind:statusFilter bind:sortBy />
 
 <p class="mb-3 flex flex-wrap items-center gap-x-3 text-sm text-zinc-400" aria-live="polite">
-  {users.length} of {data.users.length} {data.users.length === 1 ? 'user' : 'users'}
-  {#if filterSite}<span>· who can open <span class="font-medium text-zinc-200">{filterSite.name}</span></span>{/if}
-  {#if filtered}<button class="font-medium text-indigo-400 hover:text-indigo-300" onclick={clearFilters}>Clear filters</button>{/if}
+  {tn('users.count', data.users.length, { shown: users.length })}
+  {#if filterSite}<span>{t('users.who_can_open')} <span class="font-medium text-zinc-200">{filterSite.name}</span></span>{/if}
+  {#if filtered}<button class="font-medium text-indigo-400 hover:text-indigo-300" onclick={clearFilters}>{t('users.clear_filters')}</button>{/if}
 </p>
 
 <ul class="space-y-2">
@@ -175,12 +176,12 @@
       ontoggle={() => (expanded = expanded === u.id ? null : u.id)}
     />
   {:else}
-    <li class="{card} p-8 text-center text-sm text-zinc-500">No users match these filters.</li>
+    <li class="{card} p-8 text-center text-sm text-zinc-500">{t('users.no_match')}</li>
   {/each}
 </ul>
 {#if users.length > shown}
   <div class="mt-4 flex justify-center">
-    <button class={btnGhost} onclick={() => (shown += pageSize)}>Show {Math.min(pageSize, users.length - shown)} more ({users.length - shown} left)</button>
+    <button class={btnGhost} onclick={() => (shown += pageSize)}>{t('users.show_more', { count: Math.min(pageSize, users.length - shown), left: users.length - shown })}</button>
   </div>
 {/if}
 

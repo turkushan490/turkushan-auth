@@ -1,0 +1,18 @@
+{
+  "copy_link": "Tai kopioi tämä linkki:",
+  "verify.title": "Vahvista sähköpostiosoitteesi",
+  "verify.intro": "Hei {user}, napsauta painiketta vahvistaaksesi, että tämä on sähköpostiosoitteesi sivustolle {site}.",
+  "verify.button": "Vahvista sähköposti",
+  "verify.footer": "Linkki toimii 24 tuntia. Etkö pyytänyt tätä? Voit silloin jättää tämän viestin huomiotta.",
+  "reset.title": "Nollaa salasanasi",
+  "reset.intro": "Hei {user}, joku (toivottavasti sinä) pyysi nollaamaan salasanasi sivustolle {site}. Napsauta painiketta valitaksesi uuden.",
+  "reset.button": "Valitse uusi salasana",
+  "reset.footer": "Linkki toimii 1 tunnin ja vain kerran. Etkö pyytänyt tätä? Jätä viesti huomiotta; salasanasi pysyy ennallaan.",
+  "invite.title": "Sinut on kutsuttu",
+  "invite.intro": "{admin} loi sinulle tilin sivustolle {site}. Käyttäjätunnuksesi on {user}. Napsauta painiketta valitaksesi salasanasi.",
+  "invite.button": "Valitse salasanani",
+  "invite.footer": "Linkki toimii 3 päivää ja vain kerran.",
+  "test.title": "Testiviesti",
+  "test.intro": "Kirjautumisportaalisi sähköposti toimii. Vahvistus- ja salasanan palautusviestit näyttävät tältä.",
+  "test.footer": "Lähetetty ylläpitopaneelista."
+}

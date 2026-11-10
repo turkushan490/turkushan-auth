@@ -1,0 +1,18 @@
+{
+  "copy_link": "Albo skopiuj ten link:",
+  "verify.title": "Zweryfikuj swój adres e-mail",
+  "verify.intro": "Cześć {user}, kliknij przycisk, aby potwierdzić, że to twój adres e-mail dla {site}.",
+  "verify.button": "Zweryfikuj e-mail",
+  "verify.footer": "Link działa przez 24 godziny. Nie prosiłeś o to? Wtedy możesz zignorować tę wiadomość.",
+  "reset.title": "Zresetuj swoje hasło",
+  "reset.intro": "Cześć {user}, ktoś (mamy nadzieję, że ty) poprosił o reset hasła do {site}. Kliknij przycisk, aby wybrać nowe.",
+  "reset.button": "Wybierz nowe hasło",
+  "reset.footer": "Link działa przez 1 godzinę i tylko raz. Nie prosiłeś o to? Zignoruj tę wiadomość; twoje hasło się nie zmieni.",
+  "invite.title": "Masz zaproszenie",
+  "invite.intro": "{admin} utworzył dla ciebie konto w {site}. Twoja nazwa użytkownika to {user}. Kliknij przycisk, aby wybrać hasło.",
+  "invite.button": "Wybierz moje hasło",
+  "invite.footer": "Link działa przez 3 dni i tylko raz.",
+  "test.title": "Wiadomość testowa",
+  "test.intro": "E-mail z twojego portalu logowania działa. Wiadomości weryfikacyjne i z resetem hasła będą wyglądać tak.",
+  "test.footer": "Wysłano z panelu administratora."
+}

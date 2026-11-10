@@ -1,0 +1,18 @@
+{
+  "copy_link": "Atau salin tautan ini:",
+  "verify.title": "Verifikasi alamat email Anda",
+  "verify.intro": "Hai {user}, klik tombol untuk mengonfirmasi bahwa ini alamat email Anda untuk {site}.",
+  "verify.button": "Verifikasi email",
+  "verify.footer": "Tautan berlaku selama 24 jam. Tidak meminta ini? Abaikan saja email ini.",
+  "reset.title": "Reset kata sandi Anda",
+  "reset.intro": "Hai {user}, seseorang (semoga Anda) meminta reset kata sandi Anda untuk {site}. Klik tombol untuk memilih yang baru.",
+  "reset.button": "Pilih kata sandi baru",
+  "reset.footer": "Tautan berlaku selama 1 jam dan hanya sekali. Tidak meminta ini? Abaikan email ini; kata sandi Anda tetap sama.",
+  "invite.title": "Anda diundang",
+  "invite.intro": "{admin} membuatkan akun untuk Anda di {site}. Nama pengguna Anda adalah {user}. Klik tombol untuk memilih kata sandi Anda.",
+  "invite.button": "Pilih kata sandi saya",
+  "invite.footer": "Tautan berlaku selama 3 hari dan hanya sekali.",
+  "test.title": "Email uji",
+  "test.intro": "Email dari portal login Anda berfungsi. Email verifikasi dan reset kata sandi akan terlihat seperti ini.",
+  "test.footer": "Dikirim dari panel admin."
+}

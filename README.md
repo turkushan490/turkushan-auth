@@ -21,6 +21,7 @@ Everything runs in **one container**: a Go backend and a Svelte frontend in a si
   - groups that give site access and panel rights, with auto-add rules; several admins
   - add sites with a ready-to-paste NPM config and a **Copy** button
   - audit log of every admin action
+- **25 languages** with a searchable language picker. The portal follows the visitor's browser language, and mails go out in the language they chose. You can set a default and limit which languages are offered.
 - **Your own look:** logo, site name, accent color, font and background (image, color or gradient), set in the admin panel with a live preview
 - **Email** via any SMTP provider (Resend recommended): verify addresses, reset passwords
 - **Discord notifications** for new accounts and access requests
@@ -102,6 +103,21 @@ Locked out of the admin account without a verified email? This asks for the new 
 ```bash
 docker exec -it turkushan-auth /turkushan-auth reset-password <username>
 ```
+
+## Languages
+
+The portal and its mails are available in English, Dutch, Turkish, German, French, Spanish, Portuguese, Italian, Polish, Russian, Ukrainian, Arabic, Persian, Hindi, Japanese, Korean, Chinese (Simplified and Traditional), Indonesian, Vietnamese, Thai, Swedish, Danish, Norwegian and Finnish. Arabic and Persian are shown right to left.
+
+**Which language a visitor sees:**
+1. The language they picked in the picker. It's saved on their account, so their mails use it too.
+2. Otherwise, their browser's language.
+3. Otherwise, the default you set in **Admin panel → Appearance → Language**. You can also limit which languages are offered there.
+
+The translations were made with machine help. Found a clumsy sentence? Corrections are very welcome as a pull request:
+- web texts: `web/src/locales/<code>.json`
+- mail texts: `internal/i18n/mail/<code>.json`
+
+`npm run check-locales` in `web/` checks that every language has the same keys and placeholders as English.
 
 ## Development
 

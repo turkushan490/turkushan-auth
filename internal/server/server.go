@@ -107,6 +107,7 @@ func build(cfg *config.Config, st *store.Store, log *slog.Logger, dist fs.FS) (*
 			r.Post("/account/email", s.handleSetEmail)
 			r.Post("/account/email/resend", s.handleResendVerification)
 			r.Post("/account/password", s.handleChangePassword)
+			r.Put("/account/language", s.handleSetLanguage)
 			r.Post("/verify-email", s.handleVerifyEmail)
 			r.Post("/password/forgot", s.handleForgotPassword)
 			r.Post("/password/reset", s.handleResetPassword)
@@ -229,9 +230,14 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	json.NewEncoder(w).Encode(v)
 }
 
-// writeError sends {"error": msg}; msg is shown to the user as is.
+// writeError sends {"error": msg}; msg is shown to the user as is, or
+// translated by the web app when it has a code (see errcodes.go).
 func writeError(w http.ResponseWriter, status int, msg string) {
-	writeJSON(w, status, map[string]string{"error": msg})
+	body := map[string]string{"error": msg}
+	if code := errorCode(msg); code != "" {
+		body["code"] = code
+	}
+	writeJSON(w, status, body)
 }
 
 func (s *Server) serverError(w http.ResponseWriter, r *http.Request, err error) {

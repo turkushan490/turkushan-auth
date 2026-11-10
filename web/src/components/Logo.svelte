@@ -1,4 +1,6 @@
 <script>
+  import { t } from '../lib/i18n.svelte.js';
+
   // The uploaded logo, or the built-in lock when there is none. size: 'lg' (login pages) | 'sm' (admin header).
   let { appearance, size = 'lg' } = $props();
 </script>
@@ -6,7 +8,7 @@
 {#if appearance?.logo_url}
   <img
     src={appearance.logo_url}
-    alt={appearance.site_name || 'Logo'}
+    alt={appearance.site_name || t('comp.logo')}
     class="object-contain {size === 'lg' ? 'max-h-20 max-w-[14rem]' : 'size-8 shrink-0'}"
   />
 {:else}

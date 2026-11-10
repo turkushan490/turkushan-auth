@@ -11,12 +11,14 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/turkushan490/turkushan-auth/internal/i18n"
 	"github.com/turkushan490/turkushan-auth/internal/store"
 )
 
@@ -31,6 +33,9 @@ type appearance struct {
 	BgColor   string `json:"bg_color"`
 	BgColor2  string `json:"bg_color2"` // second color of the gradient
 	Overlay   int    `json:"overlay"`   // 0-90: how much an image is darkened, in percent
+
+	DefaultLang string   `json:"default_lang"` // for visitors whose browser language isn't offered; "" = English
+	Languages   []string `json:"languages"`    // offered in the language picker; empty = all
 
 	// Uploaded files live in DATA_DIR/branding; the version busts browser caches.
 	LogoType    string `json:"logo_type"` // content type, "" = no logo
@@ -94,6 +99,11 @@ func (s *Server) appearanceJSON(a appearance) map[string]any {
 		"overlay":      a.Overlay,
 		"logo_url":     "",
 		"bg_image_url": "",
+		"default_lang": a.DefaultLang,
+		"languages":    a.Languages,
+	}
+	if a.Languages == nil {
+		out["languages"] = []string{}
 	}
 	if a.BgType != "" {
 		out["bg_type"] = a.BgType
@@ -136,6 +146,33 @@ type appearanceInput struct {
 	BgColor   string `json:"bg_color"`
 	BgColor2  string `json:"bg_color2"`
 	Overlay   int    `json:"overlay"`
+
+	DefaultLang *string  `json:"default_lang"` // nil keeps the saved one
+	Languages   []string `json:"languages"`    // nil keeps the saved list
+}
+
+// cleanLanguages checks the language settings; the string is a message for the admin.
+func cleanLanguages(def *string, langs []string) (string, []string, string) {
+	out := []string{}
+	for _, l := range langs {
+		c := i18n.Canonical(l)
+		if c == "" {
+			return "", nil, "Unknown language: " + l + "."
+		}
+		if !slices.Contains(out, c) {
+			out = append(out, c)
+		}
+	}
+	d := ""
+	if def != nil && *def != "" {
+		if d = i18n.Canonical(*def); d == "" {
+			return "", nil, "Unknown language: " + *def + "."
+		}
+		if len(out) > 0 && !slices.Contains(out, d) {
+			return "", nil, "The default language must be one of the offered languages."
+		}
+	}
+	return d, out, ""
 }
 
 func (s *Server) handleUpdateAppearance(w http.ResponseWriter, r *http.Request) {
@@ -182,6 +219,21 @@ func (s *Server) handleUpdateAppearance(w http.ResponseWriter, r *http.Request) 
 	}
 	a.SiteName, a.PageTitle, a.Accent, a.Font = in.SiteName, in.PageTitle, in.Accent, in.Font
 	a.BgType, a.BgColor, a.BgColor2, a.Overlay = in.BgType, in.BgColor, in.BgColor2, in.Overlay
+	if in.DefaultLang != nil || in.Languages != nil {
+		def, langs := in.DefaultLang, in.Languages
+		if def == nil {
+			def = &a.DefaultLang
+		}
+		if langs == nil {
+			langs = a.Languages
+		}
+		d, l, msg := cleanLanguages(def, langs)
+		if msg != "" {
+			writeError(w, http.StatusBadRequest, msg)
+			return
+		}
+		a.DefaultLang, a.Languages = d, l
+	}
 	if err := s.saveAppearance(ctx, a); err != nil {
 		s.serverError(w, r, err)
 		return

@@ -18,6 +18,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/turkushan490/turkushan-auth/internal/auth"
+	"github.com/turkushan490/turkushan-auth/internal/i18n"
 	"github.com/turkushan490/turkushan-auth/internal/store"
 )
 
@@ -611,6 +612,7 @@ type oauthCompleteRequest struct {
 	P        string `json:"p"`
 	Username string `json:"username"` // "" = take the suggestion
 	Password string `json:"password"` // "" = no password, sign in with Discord/Google only
+	Lang     string `json:"lang"`     // the language picked in the web app, if any
 }
 
 // handleOAuthComplete creates the account after a first Discord/Google sign-in.
@@ -712,6 +714,11 @@ func (s *Server) handleOAuthComplete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.syncGroups(ctx, id)
+	if lang := i18n.Canonical(req.Lang); lang != "" {
+		if err := s.store.SetLang(ctx, id, lang); err != nil {
+			s.log.Error("save language", "err", err)
+		}
+	}
 
 	label := s.oauth[p.Provider].label
 	s.log.Info("user registered", "username", username, "ip", ip, "via", p.Provider)
@@ -751,5 +758,5 @@ func (s *Server) handleUnlinkLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.syncGroups(ctx, u.ID)
-	writeJSON(w, http.StatusOK, map[string]string{"message": p.label + " is disconnected."})
+	writeJSON(w, http.StatusOK, map[string]string{"message": p.label + " is disconnected.", "code": "disconnected", "provider": p.label})
 }

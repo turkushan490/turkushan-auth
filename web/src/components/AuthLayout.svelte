@@ -1,10 +1,12 @@
 <script>
   import { app, look } from '../lib/state.svelte.js';
   import Logo from './Logo.svelte';
+  import LanguagePicker from './LanguagePicker.svelte';
+  import { t } from '../lib/i18n.svelte.js';
 
   let { title, subtitle = '', children, footer } = $props();
 
-  const brand = $derived(look().site_name || app.session?.brand || 'Login');
+  const brand = $derived(look().site_name || app.session?.brand || t('comp.brand'));
 
   // Cookies only work on the real portal domain, not on the LAN IP.
   const wrongHost = $derived.by(() => {
@@ -19,6 +21,9 @@
 </script>
 
 <main class="relative grid min-h-screen place-items-center px-4 py-10 text-zinc-100">
+  <div class="absolute end-4 top-4 z-10">
+    <LanguagePicker />
+  </div>
 
   <div class="relative w-full max-w-sm">
     <div class="mb-8 flex flex-col items-center text-center">
@@ -28,8 +33,8 @@
 
     {#if wrongHost}
       <div class="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
-        You opened the portal via <span class="font-mono">{location.host}</span>. Logging in only works on
-        <a class="font-medium underline underline-offset-2 hover:text-amber-100" href={wrongHost + location.pathname + location.search}>{new URL(wrongHost).host}</a>.
+        {t('comp.wrong_host_a')} <span class="font-mono">{location.host}</span>{t('comp.wrong_host_b')}
+        <a class="font-medium underline underline-offset-2 hover:text-amber-100" href={wrongHost + location.pathname + location.search}>{new URL(wrongHost).host}</a>{t('comp.wrong_host_c')}
       </div>
     {/if}
 

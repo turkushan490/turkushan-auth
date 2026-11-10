@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"html/template"
 	"net"
 	"net/http"
@@ -14,6 +13,7 @@ import (
 	"time"
 
 	"github.com/turkushan490/turkushan-auth/internal/auth"
+	"github.com/turkushan490/turkushan-auth/internal/i18n"
 	"github.com/turkushan490/turkushan-auth/internal/mail"
 	"github.com/turkushan490/turkushan-auth/internal/store"
 )
@@ -44,7 +44,7 @@ func (s *Server) mailConfig(ctx context.Context) (mail.Config, error) {
 }
 
 var mailHTML = template.Must(template.New("mail").Parse(`<!doctype html>
-<html><body style="margin:0;padding:24px;background:#f4f4f5;font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#18181b">
+<html lang="{{.Lang}}" dir="{{.Dir}}"><body style="margin:0;padding:24px;background:#f4f4f5;font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#18181b">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:12px;padding:32px">
 <tr><td>
@@ -52,13 +52,47 @@ var mailHTML = template.Must(template.New("mail").Parse(`<!doctype html>
 <h1 style="margin:0 0 16px;font-size:20px">{{.Title}}</h1>
 <p style="margin:0 0 24px;font-size:15px;line-height:1.5">{{.Intro}}</p>
 {{if .Link}}<p style="margin:0 0 24px"><a href="{{.Link}}" style="display:inline-block;background:#6366f1;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:8px">{{.Button}}</a></p>
-<p style="margin:0 0 8px;font-size:13px;color:#71717a">Or copy this link:</p>
+<p style="margin:0 0 8px;font-size:13px;color:#71717a">{{.CopyLink}}</p>
 <p style="margin:0 0 24px;font-size:13px;word-break:break-all"><a href="{{.Link}}" style="color:#6366f1">{{.Link}}</a></p>{{end}}
 <p style="margin:0;font-size:13px;color:#71717a">{{.Footer}}</p>
 </td></tr></table></td></tr></table></body></html>`))
 
 type mailContent struct {
 	Brand, Title, Intro, Button, Link, Footer string
+	Lang, Dir, CopyLink                       string // filled in by sendMail
+}
+
+// localMail builds a mail in lang from the texts in internal/i18n/mail:
+// kind is verify, reset, invite or test.
+func localMail(lang, kind, link string, params map[string]string) mailContent {
+	c := mailContent{
+		Lang:   lang,
+		Title:  i18n.Mail(lang, kind+".title", params),
+		Intro:  i18n.Mail(lang, kind+".intro", params),
+		Footer: i18n.Mail(lang, kind+".footer", params),
+		Link:   link,
+	}
+	if link != "" {
+		c.Button = i18n.Mail(lang, kind+".button", params)
+	}
+	return c
+}
+
+// mailLang picks the language for mail to u: what they chose, else their
+// browser's (when r is their own request), else the portal default, else English.
+func (s *Server) mailLang(ctx context.Context, u *store.User, r *http.Request) string {
+	if u != nil && i18n.Canonical(u.Lang) != "" {
+		return i18n.Canonical(u.Lang)
+	}
+	if r != nil {
+		if l := i18n.FromAcceptLanguage(r.Header.Get("Accept-Language")); l != "" {
+			return l
+		}
+	}
+	if a, err := s.loadAppearance(ctx); err == nil && a.DefaultLang != "" {
+		return a.DefaultLang
+	}
+	return "en"
 }
 
 func (s *Server) sendMail(ctx context.Context, to string, c mailContent) error {
@@ -67,6 +101,14 @@ func (s *Server) sendMail(ctx context.Context, to string, c mailContent) error {
 		return err
 	}
 	c.Brand = s.redirectBase
+	if c.Lang == "" {
+		c.Lang = "en"
+	}
+	c.CopyLink = i18n.Mail(c.Lang, "copy_link", nil)
+	c.Dir = "ltr"
+	if i18n.RTL(c.Lang) {
+		c.Dir = "rtl"
+	}
 	var html bytes.Buffer
 	if err := mailHTML.Execute(&html, c); err != nil {
 		return err
@@ -95,7 +137,7 @@ func (s *Server) mailReady(ctx context.Context) bool {
 
 // sendVerification mails the confirmation link. rd (optional) is the site the
 // user was on their way to; after verifying they continue there.
-func (s *Server) sendVerification(ctx context.Context, u *store.User, email, rd string) error {
+func (s *Server) sendVerification(ctx context.Context, u *store.User, email, rd, lang string) error {
 	token, err := s.store.CreateToken(ctx, u.ID, store.TokenVerifyEmail, email, verifyTTL)
 	if err != nil {
 		return err
@@ -104,13 +146,7 @@ func (s *Server) sendVerification(ctx context.Context, u *store.User, email, rd 
 	if safe := auth.SafeRedirect(rd, s.redirectBase, s.cfg.AppURL.Scheme == "http"); safe != "" {
 		link += "&rd=" + url.QueryEscape(safe)
 	}
-	return s.sendMail(ctx, email, mailContent{
-		Title:  "Verify your email address",
-		Intro:  fmt.Sprintf("Hi %s, click the button to confirm this is your email address for %s.", u.Username, s.redirectBase),
-		Button: "Verify email",
-		Link:   link,
-		Footer: "The link works for 24 hours. Didn't ask for this? Then you can ignore this mail.",
-	})
+	return s.sendMail(ctx, email, localMail(lang, "verify", link, map[string]string{"user": u.Username, "site": s.redirectBase}))
 }
 
 // --- signed-in user: email + password ---
@@ -158,11 +194,11 @@ func (s *Server) handleSetEmail(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		s.syncGroups(ctx, u.ID)
-		writeJSON(w, http.StatusOK, map[string]string{"message": "Email address removed."})
+		writeJSON(w, http.StatusOK, map[string]string{"message": "Email address removed.", "code": "email_removed"})
 		return
 	}
 	if email == u.Email && u.EmailVerified {
-		writeJSON(w, http.StatusOK, map[string]string{"message": "That address is already verified."})
+		writeJSON(w, http.StatusOK, map[string]string{"message": "That address is already verified.", "code": "email_already_verified"})
 		return
 	}
 	if !s.mailReady(ctx) {
@@ -181,12 +217,12 @@ func (s *Server) handleSetEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.syncGroups(ctx, u.ID)
-	if err := s.sendVerification(ctx, u, email, req.RD); err != nil {
+	if err := s.sendVerification(ctx, u, email, req.RD, s.mailLang(ctx, u, r)); err != nil {
 		s.log.Error("send verification mail", "err", err)
 		writeError(w, http.StatusBadGateway, "Your address is saved, but the mail could not be sent. Try \"Send again\" later.")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]string{"message": "Check your inbox for " + email + " and click the link."})
+	writeJSON(w, http.StatusOK, map[string]string{"message": "Check your inbox for " + email + " and click the link.", "code": "check_inbox", "email": email})
 }
 
 func (s *Server) handleResendVerification(w http.ResponseWriter, r *http.Request) {
@@ -213,12 +249,12 @@ func (s *Server) handleResendVerification(w http.ResponseWriter, r *http.Request
 		writeError(w, http.StatusServiceUnavailable, "Email isn't set up on this portal yet. Ask the admin.")
 		return
 	}
-	if err := s.sendVerification(r.Context(), u, u.Email, req.RD); err != nil {
+	if err := s.sendVerification(r.Context(), u, u.Email, req.RD, s.mailLang(r.Context(), u, r)); err != nil {
 		s.log.Error("send verification mail", "err", err)
 		writeError(w, http.StatusBadGateway, "The mail could not be sent. Try again later.")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]string{"message": "Sent. Check your inbox for " + u.Email + "."})
+	writeJSON(w, http.StatusOK, map[string]string{"message": "Sent. Check your inbox for " + u.Email + ".", "code": "sent_check_inbox", "email": u.Email})
 }
 
 type changePasswordRequest struct {
@@ -264,7 +300,7 @@ func (s *Server) handleChangePassword(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]string{"message": "Password changed. Other devices were signed out."})
+	writeJSON(w, http.StatusOK, map[string]string{"message": "Password changed. Other devices were signed out.", "code": "password_changed"})
 }
 
 // --- links from mails ---
@@ -327,7 +363,7 @@ func (s *Server) handleForgotPassword(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusTooManyRequests, "Too many requests. Try again in an hour.")
 		return
 	}
-	done := map[string]string{"message": "If that account has a verified email address, a reset link is on its way. No mail? Ask the admin to reset your password."}
+	done := map[string]string{"message": "If that account has a verified email address, a reset link is on its way. No mail? Ask the admin to reset your password.", "code": "reset_sent"}
 
 	ctx := r.Context()
 	var u *store.User
@@ -351,13 +387,9 @@ func (s *Server) handleForgotPassword(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, done)
 		return
 	}
-	content := mailContent{
-		Title:  "Reset your password",
-		Intro:  fmt.Sprintf("Hi %s, someone (hopefully you) asked to reset your password for %s. Click the button to choose a new one.", u.Username, s.redirectBase),
-		Button: "Choose a new password",
-		Link:   s.portalURL("/reset", url.Values{"token": {token}}),
-		Footer: "The link works for 1 hour and only once. Didn't ask for this? Ignore this mail; your password stays the same.",
-	}
+	// Not the requester's browser language: anyone can ask for this mail.
+	content := localMail(s.mailLang(ctx, u, nil), "reset", s.portalURL("/reset", url.Values{"token": {token}}),
+		map[string]string{"user": u.Username, "site": s.redirectBase})
 	// Send in the background: waiting for the mail server would make existing
 	// accounts answer noticeably slower than unknown ones.
 	to, username := u.Email, u.Username
@@ -502,11 +534,7 @@ func (s *Server) handleTestMail(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "Fill in and save the mail server, port and sender first.")
 		return
 	}
-	err = s.sendMail(r.Context(), to, mailContent{
-		Title:  "Test mail",
-		Intro:  "Email from your login portal works. Verification and password-reset mails will look like this.",
-		Footer: "Sent from the admin panel.",
-	})
+	err = s.sendMail(r.Context(), to, localMail(s.mailLang(r.Context(), adminFrom(r), r), "test", "", nil))
 	if err != nil {
 		writeError(w, http.StatusBadGateway, "Sending failed: "+err.Error())
 		return

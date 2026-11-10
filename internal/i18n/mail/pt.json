@@ -1,0 +1,18 @@
+{
+  "copy_link": "Ou copie este link:",
+  "verify.title": "Verifique seu endereço de e-mail",
+  "verify.intro": "Olá {user}, clique no botão para confirmar que este é o seu endereço de e-mail em {site}.",
+  "verify.button": "Verificar e-mail",
+  "verify.footer": "O link vale por 24 horas. Não pediu isso? Então pode ignorar este e-mail.",
+  "reset.title": "Redefina sua senha",
+  "reset.intro": "Olá {user}, alguém (esperamos que você) pediu para redefinir sua senha em {site}. Clique no botão para escolher uma nova.",
+  "reset.button": "Escolher uma nova senha",
+  "reset.footer": "O link vale por 1 hora e só pode ser usado uma vez. Não pediu isso? Ignore este e-mail; sua senha continua a mesma.",
+  "invite.title": "Você foi convidado",
+  "invite.intro": "{admin} criou uma conta para você em {site}. Seu nome de usuário é {user}. Clique no botão para escolher sua senha.",
+  "invite.button": "Escolher minha senha",
+  "invite.footer": "O link vale por 3 dias e só pode ser usado uma vez.",
+  "test.title": "E-mail de teste",
+  "test.intro": "O e-mail do seu portal de login está funcionando. Os e-mails de verificação e de redefinição de senha terão esta aparência.",
+  "test.footer": "Enviado pelo painel de administração."
+}

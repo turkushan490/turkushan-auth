@@ -1,0 +1,18 @@
+{
+  "copy_link": "Hoặc sao chép liên kết này:",
+  "verify.title": "Xác minh địa chỉ email của bạn",
+  "verify.intro": "Chào {user}, hãy nhấp vào nút để xác nhận đây là địa chỉ email của bạn cho {site}.",
+  "verify.button": "Xác minh email",
+  "verify.footer": "Liên kết có hiệu lực trong 24 giờ. Bạn không yêu cầu việc này? Vậy cứ bỏ qua email này.",
+  "reset.title": "Đặt lại mật khẩu của bạn",
+  "reset.intro": "Chào {user}, có người (hy vọng là bạn) đã yêu cầu đặt lại mật khẩu của bạn cho {site}. Hãy nhấp vào nút để chọn mật khẩu mới.",
+  "reset.button": "Chọn mật khẩu mới",
+  "reset.footer": "Liên kết có hiệu lực trong 1 giờ và chỉ dùng được một lần. Bạn không yêu cầu việc này? Hãy bỏ qua email này; mật khẩu của bạn vẫn giữ nguyên.",
+  "invite.title": "Bạn được mời",
+  "invite.intro": "{admin} đã tạo một tài khoản cho bạn trên {site}. Tên người dùng của bạn là {user}. Hãy nhấp vào nút để chọn mật khẩu.",
+  "invite.button": "Chọn mật khẩu của tôi",
+  "invite.footer": "Liên kết có hiệu lực trong 3 ngày và chỉ dùng được một lần.",
+  "test.title": "Email thử",
+  "test.intro": "Email từ cổng đăng nhập của bạn hoạt động tốt. Email xác minh và đặt lại mật khẩu sẽ trông như thế này.",
+  "test.footer": "Được gửi từ bảng quản trị."
+}

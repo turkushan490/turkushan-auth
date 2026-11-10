@@ -1,0 +1,18 @@
+{
+  "copy_link": "Ou copiez ce lien :",
+  "verify.title": "Confirmez votre adresse e-mail",
+  "verify.intro": "Bonjour {user}, cliquez sur le bouton pour confirmer que c'est bien votre adresse e-mail pour {site}.",
+  "verify.button": "Confirmer l'e-mail",
+  "verify.footer": "Le lien fonctionne 24 heures. Vous n'avez rien demandé ? Vous pouvez ignorer ce mail.",
+  "reset.title": "Réinitialisez votre mot de passe",
+  "reset.intro": "Bonjour {user}, quelqu'un (vous, on l'espère) a demandé la réinitialisation de votre mot de passe pour {site}. Cliquez sur le bouton pour en choisir un nouveau.",
+  "reset.button": "Choisir un nouveau mot de passe",
+  "reset.footer": "Le lien fonctionne 1 heure et une seule fois. Vous n'avez rien demandé ? Ignorez ce mail ; votre mot de passe ne change pas.",
+  "invite.title": "Vous êtes invité",
+  "invite.intro": "{admin} a créé un compte pour vous sur {site}. Votre nom d'utilisateur est {user}. Cliquez sur le bouton pour choisir votre mot de passe.",
+  "invite.button": "Choisir mon mot de passe",
+  "invite.footer": "Le lien fonctionne 3 jours et une seule fois.",
+  "test.title": "Mail de test",
+  "test.intro": "L'envoi d'e-mails depuis votre portail de connexion fonctionne. Les mails de confirmation et de réinitialisation ressembleront à ceci.",
+  "test.footer": "Envoyé depuis le panneau d'administration."
+}

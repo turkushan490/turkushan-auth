@@ -206,4 +206,6 @@ CREATE TABLE oauth_pending (
   expires_at INTEGER NOT NULL
 );
 `,
+	// 4: the language each person picked, for the mails the portal sends them.
+	`ALTER TABLE users ADD COLUMN lang TEXT NOT NULL DEFAULT ''`,
 }
