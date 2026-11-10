@@ -294,10 +294,10 @@ func TestCreateUser(t *testing.T) {
 	}
 
 	for _, bad := range []map[string]any{
-		{"username": "piet", "password": "Secret!1"},                  // taken
-		{"username": "x", "password": "Secret!1"},                     // bad username
-		{"username": "klaas", "password": "weak"},                     // weak password
-		{"username": "klaas", "invite": true},                         // invite without email
+		{"username": "piet", "password": "Secret!1"},                   // taken
+		{"username": "x", "password": "Secret!1"},                      // bad username
+		{"username": "klaas", "password": "weak"},                      // weak password
+		{"username": "klaas", "invite": true},                          // invite without email
 		{"username": "klaas", "password": "Secret!1", "email": "nope"}, // bad email
 	} {
 		if code, _ := admin.post("/api/admin/users", bad); code < 400 || code >= 500 {

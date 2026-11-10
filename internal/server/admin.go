@@ -4,11 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/go-chi/chi/v5"
@@ -179,6 +183,7 @@ func (s *Server) handleAdminData(w http.ResponseWriter, r *http.Request) {
 		"all_perms":   store.AllPerms,
 		"mail_ready":  s.mailReady(ctx),
 		"settings":    settings,
+		"version":     s.cfg.Version,
 	}
 
 	if rights.Has(store.PermUsers) || rights.Has(store.PermGroups) {
@@ -254,6 +259,37 @@ func (s *Server) handleAdminAudit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"entries": entries})
+}
+
+// handleBackup sends the admin a consistent copy of the whole database. Admins
+// only: it holds every password hash and the mail and login secrets.
+func (s *Server) handleBackup(w http.ResponseWriter, r *http.Request) {
+	if !s.needAdmin(w, r) {
+		return
+	}
+	dir, err := os.MkdirTemp(s.cfg.DataDir, ".backup-")
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	defer os.RemoveAll(dir)
+	path := filepath.Join(dir, "backup.db")
+	if err := s.store.Backup(r.Context(), path); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	f, err := os.Open(path)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	defer f.Close()
+	s.audit(r, "backup.download", "", "")
+	name := "turkushan-auth-" + time.Now().Format("2006-01-02-150405") + ".db"
+	w.Header().Set("Content-Type", "application/vnd.sqlite3")
+	w.Header().Set("Content-Disposition", `attachment; filename="`+name+`"`)
+	w.Header().Set("Cache-Control", "no-store")
+	io.Copy(w, f)
 }
 
 // nginxSnippet is the NPM "Advanced" config for one protected site.

@@ -6,7 +6,6 @@
   <Network>bridge</Network>
   <Privileged>false</Privileged>
   <Icon>https://raw.githubusercontent.com/turkushan490/turkushan-auth/main/icon.svg</Icon>
-  <WebUI>http://[IP]:[PORT:3010]/</WebUI>
   <Overview>Self-hosted login portal (forward auth) for your subdomains behind Nginx Proxy Manager. People register their own account, you approve who may open which site in the admin panel, and one login works on all subdomains (SSO cookie). Per site you choose: approval required or open to any logged-in user, and whether a verified email is required. Single container, SQLite database in /data, no extra services. Includes an admin panel with a ready-to-paste NPM config per site, email verification and password reset via any SMTP provider (Resend recommended), and Discord notifications. Guide: https://github.com/turkushan490/turkushan-auth/blob/main/docs/GUIDE.md</Overview>
   <Support>https://github.com/turkushan490/turkushan-auth/issues</Support>
   <Project>https://github.com/turkushan490/turkushan-auth</Project>
@@ -15,8 +14,10 @@
   <Category>Security: Network:Proxy</Category>
   <ExtraSearchTerms>auth sso login forward-auth nginx proxy manager npm auth_request tinyauth authelia</ExtraSearchTerms>
   <Requires>Nginx Proxy Manager (or nginx with auth_request) and a domain with HTTPS.</Requires>
-  <Changes>Groups with site access and panel rights, auto-add rules, several admins, create or invite users, sign in with Discord or Google, appearance (logo, colors, font, background), email verification and password reset.</Changes>
-  <Date>2026-10-01</Date>
+  <Changes>### 1.0.0
+Security fixes. After updating, copy the NPM config of every site again (Admin panel - Sites - NPM config) and paste it over the old one in NPM.
+Full list: https://github.com/turkushan490/turkushan-auth/blob/main/CHANGELOG.md</Changes>
+  <Date>2026-11-10</Date>
   <Beta>true</Beta>
   <MinVer>6.12</MinVer>
   <License>MIT</License>
@@ -28,12 +29,14 @@
   <Config Name="Web port" Target="3010" Default="3010" Mode="tcp" Description="Port Nginx Proxy Manager uses to reach the portal." Type="Port" Display="always" Required="true" Mask="false">3010</Config>
   <Config Name="Data" Target="/data" Default="/mnt/user/appdata/turkushan-auth" Mode="rw" Description="SQLite database and generated secret." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/turkushan-auth</Config>
   <Config Name="APP_URL" Target="APP_URL" Default="" Mode="" Description="Public URL of the portal, e.g. https://auth.example.com" Type="Variable" Display="always" Required="true" Mask="false"></Config>
-  <Config Name="ADMIN_USER" Target="ADMIN_USER" Default="" Mode="" Description="Admin account created on first start." Type="Variable" Display="always" Required="true" Mask="false"></Config>
-  <Config Name="ADMIN_PASSWORD" Target="ADMIN_PASSWORD" Default="" Mode="" Description="Admin password: at least 6 characters, with 1 capital letter and 1 symbol (e.g. ! @ # ?)." Type="Variable" Display="always" Required="true" Mask="true"></Config>
+  <Config Name="ADMIN_USER" Target="ADMIN_USER" Default="" Mode="" Description="Admin account created on first start." Type="Variable" Display="always" Required="false" Mask="false"></Config>
+  <Config Name="ADMIN_PASSWORD" Target="ADMIN_PASSWORD" Default="" Mode="" Description="Admin password, only needed on the first start (remove it afterwards): at least 6 characters, with 1 capital letter and 1 symbol (e.g. ! @ # ?)." Type="Variable" Display="always" Required="false" Mask="true"></Config>
   <Config Name="COOKIE_DOMAIN" Target="COOKIE_DOMAIN" Default="" Mode="" Description="Optional. Cookie domain shared by all protected subdomains. Empty = derived from APP_URL (auth.example.com gives .example.com)." Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
   <Config Name="PORTAL_INTERNAL_URL" Target="PORTAL_INTERNAL_URL" Default="" Mode="" Description="Optional. How Nginx Proxy Manager reaches this container, e.g. http://192.168.1.10:3010. Filled into the nginx snippets the admin panel generates." Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
   <Config Name="TRUSTED_PROXIES" Target="TRUSTED_PROXIES" Default="172.16.0.0/12" Mode="" Description="IPs/CIDRs of your proxy. Client IP headers are only trusted from these. Default covers Docker networks." Type="Variable" Display="advanced" Required="false" Mask="false">172.16.0.0/12</Config>
   <Config Name="PUID" Target="PUID" Default="99" Mode="" Description="User the app runs as (99 = nobody)." Type="Variable" Display="advanced" Required="false" Mask="false">99</Config>
   <Config Name="PGID" Target="PGID" Default="100" Mode="" Description="Group the app runs as (100 = users)." Type="Variable" Display="advanced" Required="false" Mask="false">100</Config>
+  <Config Name="LOG_LEVEL" Target="LOG_LEVEL" Default="info" Mode="" Description="Optional. debug, info, warn or error." Type="Variable" Display="advanced" Required="false" Mask="false">info</Config>
+  <Config Name="LOG_FORMAT" Target="LOG_FORMAT" Default="text" Mode="" Description="Optional. text, or json for log collectors." Type="Variable" Display="advanced" Required="false" Mask="false">text</Config>
   <Config Name="SESSION_SECRET" Target="SESSION_SECRET" Default="" Mode="" Description="Optional (min 32 characters). Empty = generated once and stored in /data/secret." Type="Variable" Display="advanced" Required="false" Mask="true"></Config>
 </Container>

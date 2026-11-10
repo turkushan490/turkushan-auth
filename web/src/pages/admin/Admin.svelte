@@ -117,4 +117,9 @@
       <Audit />
     {/if}
   </main>
+  {#if data?.version}
+    <footer class="mx-auto max-w-5xl px-4 pb-8 text-xs text-zinc-500">
+      turkushan-auth {data.version === 'dev' ? 'dev build' : 'v' + data.version}
+    </footer>
+  {/if}
 </div>

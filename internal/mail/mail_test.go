@@ -40,11 +40,11 @@ func TestSendRefusesBadInput(t *testing.T) {
 		t.Error("unconfigured mail accepted")
 	}
 	for from, ok := range map[string]bool{
-		"noreply@turkushan.com":                     true,
-		"Turkushan Portal <noreply@turkushan.com>":  true,
-		`"turkushan.com" <noreply@turkushan.com>`:   true,
-		"not an address":                            false,
-		"a@b.com\r\nBcc: x@y.com":                   false,
+		"noreply@turkushan.com":                    true,
+		"Turkushan Portal <noreply@turkushan.com>": true,
+		`"turkushan.com" <noreply@turkushan.com>`:  true,
+		"not an address":                           false,
+		"a@b.com\r\nBcc: x@y.com":                  false,
 	} {
 		if mail.ValidFrom(from) != ok {
 			t.Errorf("ValidFrom(%q) != %v", from, ok)

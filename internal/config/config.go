@@ -24,7 +24,8 @@ type Config struct {
 	TrustedProxies    []netip.Prefix // only these peers may set x-real-ip / x-forwarded-for
 	PortalInternalURL string         // how NPM reaches the portal, used in generated snippets
 	SessionSecret     []byte
-	PUID, PGID        int // user/group to drop to when started as root (Unraid: nobody:users)
+	PUID, PGID        int    // user/group to drop to when started as root (Unraid: nobody:users)
+	Version           string // set at build time; shown in the admin panel
 }
 
 func Load() (*Config, error) {

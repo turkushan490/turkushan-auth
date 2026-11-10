@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -21,22 +23,38 @@ import (
 	"github.com/turkushan490/turkushan-auth/web"
 )
 
+// version is set at build time: -ldflags "-X main.version=1.2.3".
+var version = "dev"
+
 func main() {
 	// Docker HEALTHCHECK runs the binary itself; the image has no shell or curl.
 	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
 		os.Exit(healthcheck())
 	}
 
-	log := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	log := newLogger()
 
-	// Recovery when nobody can log in anymore:
-	//   docker exec turkushan-auth /turkushan-auth reset-password <username> <new password>
-	if len(os.Args) > 1 && os.Args[1] == "reset-password" {
-		if err := resetPassword(log, os.Args[2:]); err != nil {
-			fmt.Fprintln(os.Stderr, "reset-password:", err)
-			os.Exit(1)
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "version", "--version":
+			fmt.Println(version)
+			return
+		case "reset-password":
+			// Recovery when nobody can log in anymore:
+			//   docker exec -it turkushan-auth /turkushan-auth reset-password <username>
+			if err := resetPassword(os.Args[2:]); err != nil {
+				fmt.Fprintln(os.Stderr, "reset-password:", err)
+				os.Exit(1)
+			}
+			return
+		case "backup":
+			//   docker exec turkushan-auth /turkushan-auth backup
+			if err := backup(os.Args[2:]); err != nil {
+				fmt.Fprintln(os.Stderr, "backup:", err)
+				os.Exit(1)
+			}
+			return
 		}
-		return
 	}
 	if err := run(log); err != nil {
 		log.Error("fatal", "err", err)
@@ -44,11 +62,26 @@ func main() {
 	}
 }
 
+// newLogger follows LOG_LEVEL (debug, info, warn, error) and LOG_FORMAT (text, json).
+func newLogger() *slog.Logger {
+	var level slog.Level
+	if err := level.UnmarshalText([]byte(os.Getenv("LOG_LEVEL"))); err != nil {
+		level = slog.LevelInfo
+	}
+	opts := &slog.HandlerOptions{Level: level}
+	if strings.EqualFold(os.Getenv("LOG_FORMAT"), "json") {
+		return slog.New(slog.NewJSONHandler(os.Stdout, opts))
+	}
+	return slog.New(slog.NewTextHandler(os.Stdout, opts))
+}
+
 func run(log *slog.Logger) error {
 	cfg, err := config.Load()
 	if err != nil {
 		return err
 	}
+	cfg.Version = version
+	log.Info("turkushan-auth starting", "version", version)
 	if err := dropPrivileges(cfg, log); err != nil {
 		return fmt.Errorf("drop privileges: %w", err)
 	}
@@ -126,34 +159,85 @@ func run(log *slog.Logger) error {
 	return srv.Shutdown(shutdownCtx)
 }
 
-// resetPassword sets a new password for a user, lifts any lock or block and
-// signs them out everywhere. It runs next to the live server on the same database.
-func resetPassword(log *slog.Logger, args []string) error {
-	if len(args) != 2 {
-		return errors.New("usage: reset-password <username> <new password>")
-	}
-	username := auth.NormalizeUsername(args[0])
-	if err := auth.ValidatePassword(args[1]); err != nil {
-		return err
-	}
+// openStore opens the live database for a command run next to the server
+// (docker exec). docker exec runs as root, so it first switches to the app
+// user: no root-owned files end up in /data.
+func openStore(ctx context.Context) (*store.Store, *config.Config, func(), error) {
 	cfg, err := config.Load()
 	if err != nil {
-		return err
+		return nil, nil, nil, err
 	}
-	// docker exec runs as root; switch to the app user so no root-owned files end up in /data.
 	if err := dropPrivileges(cfg, slog.New(slog.NewTextHandler(io.Discard, nil))); err != nil {
-		return err
+		return nil, nil, nil, err
 	}
 	sqlDB, err := db.Open(filepath.Join(cfg.DataDir, "turkushan-auth.db"))
 	if err != nil {
-		return err
+		return nil, nil, nil, err
 	}
-	defer sqlDB.Close()
-	ctx := context.Background()
 	if err := db.Migrate(ctx, sqlDB); err != nil {
+		sqlDB.Close()
+		return nil, nil, nil, err
+	}
+	return store.New(sqlDB), cfg, func() { sqlDB.Close() }, nil
+}
+
+// backup writes a consistent copy of the database, by default to
+// /data/backups/turkushan-auth-<date>.db, while the portal keeps running.
+func backup(args []string) error {
+	if len(args) > 1 {
+		return errors.New("usage: backup [file]")
+	}
+	ctx := context.Background()
+	st, cfg, done, err := openStore(ctx)
+	if err != nil {
 		return err
 	}
-	st := store.New(sqlDB)
+	defer done()
+	path := ""
+	if len(args) == 1 {
+		path = args[0]
+	} else {
+		dir := filepath.Join(cfg.DataDir, "backups")
+		if err := os.MkdirAll(dir, 0o750); err != nil {
+			return err
+		}
+		path = filepath.Join(dir, "turkushan-auth-"+time.Now().Format("2006-01-02-150405")+".db")
+	}
+	if err := st.Backup(ctx, path); err != nil {
+		return err
+	}
+	fmt.Println("Backup written to", path)
+	return nil
+}
+
+// resetPassword sets a new password for a user, lifts any lock or block and
+// signs them out everywhere. It runs next to the live server on the same database.
+// Without a password argument it asks for one, so it stays out of the shell history.
+func resetPassword(args []string) error {
+	if len(args) < 1 || len(args) > 2 {
+		return errors.New("usage: reset-password <username> [new password]  (leave the password out to type it)")
+	}
+	username := auth.NormalizeUsername(args[0])
+	password := ""
+	if len(args) == 2 {
+		password = args[1]
+	} else {
+		fmt.Fprint(os.Stderr, "New password: ")
+		line, err := bufio.NewReader(os.Stdin).ReadString('\n')
+		if err != nil && line == "" {
+			return errors.New("no password given (use docker exec -it)")
+		}
+		password = strings.TrimRight(line, "\r\n")
+	}
+	if err := auth.ValidatePassword(password); err != nil {
+		return err
+	}
+	ctx := context.Background()
+	st, _, done, err := openStore(ctx)
+	if err != nil {
+		return err
+	}
+	defer done()
 	u, err := st.UserByUsername(ctx, username)
 	if errors.Is(err, store.ErrNotFound) {
 		return fmt.Errorf("no user %q", username)
@@ -161,7 +245,7 @@ func resetPassword(log *slog.Logger, args []string) error {
 	if err != nil {
 		return err
 	}
-	hash, err := auth.HashPassword(args[1])
+	hash, err := auth.HashPassword(password)
 	if err != nil {
 		return err
 	}

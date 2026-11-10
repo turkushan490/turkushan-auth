@@ -31,6 +31,38 @@ export async function api(path, body, method) {
   return { ok: res.ok, status: res.status, data };
 }
 
+// apiDownload POSTs and saves the response as a file (database backup).
+export async function apiDownload(path, fallbackName) {
+  let res;
+  try {
+    res = await fetch('/api' + path, {
+      method: 'POST',
+      headers: { 'X-CSRF-Token': cookie('ta_csrf'), 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: '{}',
+    });
+  } catch {
+    return { ok: false, error: 'Cannot reach the server. Check your connection.' };
+  }
+  if (!res.ok) {
+    let error = `Download failed (${res.status}).`;
+    try {
+      error = (await res.json()).error || error;
+    } catch {
+      // not JSON
+    }
+    return { ok: false, error };
+  }
+  const name = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') || '')?.[1] || fallbackName;
+  const url = URL.createObjectURL(await res.blob());
+  const a = Object.assign(document.createElement('a'), { href: url, download: name });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  return { ok: true };
+}
+
 // apiUpload sends a file as the raw request body (logo / background upload).
 export async function apiUpload(path, file) {
   let res;

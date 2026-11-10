@@ -405,7 +405,21 @@ Tips:
 
 **Updates:** every change to the project builds a new `latest` image. Unraid shows **update ready** on the Docker tab; click it to update. Your data stays.
 
-**Backup:** everything lives in the appdata folder (`/mnt/user/appdata/turkushan-auth`): the SQLite database (`turkushan-auth.db`), the generated secret and your uploaded logo and background (`branding/`). Back up that folder, for example with the Appdata Backup plugin.
+- **What changed?** See the [changelog](../CHANGELOG.md) or the [releases](https://github.com/turkushan490/turkushan-auth/releases). Read it before updating; some updates ask you to do something, like re-pasting the NPM config.
+- **Back up before you update.** An update can change the database, and an older version can't read it after that.
+- **Want to stay on one version?** Set the repository to a version tag instead of `latest`:
+  - `ghcr.io/turkushan490/turkushan-auth:1.0.0` stays on exactly that version.
+  - `:1.0` follows bug fixes only.
+  - `:1` follows everything up to the next big change.
+- **Which version am I running?** It's at the bottom of the admin panel.
+
+**Backup:** everything lives in the appdata folder (`/mnt/user/appdata/turkushan-auth`): the SQLite database (`turkushan-auth.db`), the generated secret and your uploaded logo and background (`branding/`). Back it up in one of these ways:
+
+- **Admin panel → Settings → Download backup** saves a copy of the database to your computer.
+- `docker exec turkushan-auth /turkushan-auth backup` writes a copy to `/mnt/user/appdata/turkushan-auth/backups/`.
+- Back up the whole folder, for example with the Appdata Backup plugin. Let it **stop the container** first (it does by default). The database keeps recent changes in a separate `-wal` file while it runs, so copying `turkushan-auth.db` on its own from a running container can miss them. The first two ways are safe while the portal runs.
+
+To restore, stop the container, put the backup in the appdata folder as `turkushan-auth.db`, delete any `turkushan-auth.db-wal` and `turkushan-auth.db-shm` next to it, and start the container.
 
 **Reinstall:**
 - Keep the appdata folder → all users, sites and settings stay. `ADMIN_PASSWORD` isn't needed.
@@ -414,10 +428,10 @@ Tips:
 **Forgot the admin password?** With a verified email, use **Forgot password?**. Otherwise, run this in the Unraid terminal:
 
 ```bash
-docker exec turkushan-auth /turkushan-auth reset-password <username> '<new password>'
+docker exec -it turkushan-auth /turkushan-auth reset-password <username>
 ```
 
-This sets the new password, unlocks and unblocks the account, and signs it out everywhere. Put the password in single quotes when it contains symbols like `!` or `$`.
+It asks for the new password, so the password doesn't end up in the terminal's history. It then sets the password, unlocks and unblocks the account, and signs it out everywhere.
 
 ---
 

@@ -38,9 +38,9 @@ func TestSafeRedirect(t *testing.T) {
 
 func TestNormalizeEmail(t *testing.T) {
 	for in, want := range map[string]string{
-		"":                      "",
-		"  ":                    "",
-		" Turk@Example.COM ":    "turk@example.com",
+		"":                        "",
+		"  ":                      "",
+		" Turk@Example.COM ":      "turk@example.com",
 		"a.b+tag@mail.example.nl": "a.b+tag@mail.example.nl",
 	} {
 		got, err := NormalizeEmail(in)

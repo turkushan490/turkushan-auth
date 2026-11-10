@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.1.0 (2026-11-10)
+
+Backups, version tags and arm64.
+
+### New
+- **Backups.** An admin can save one in two ways:
+  - **Admin panel → Settings → Download backup** downloads a copy of the database.
+  - `docker exec turkushan-auth /turkushan-auth backup` writes one to `/data/backups/`.
+  
+  Both are safe while the portal runs.
+- **More image platforms and tags.** Images are now built for **arm64** too (Raspberry Pi, Apple silicon). Besides `latest`, every release is tagged `1.1.0`, `1.1` and `1`, so you can stay on a version.
+- **Version shown in the admin panel.** The running version is at the bottom of the admin panel, and in the log at start-up.
+- **Log settings.** `LOG_LEVEL` (`debug`, `info`, `warn`, `error`) and `LOG_FORMAT=json`.
+- **`reset-password` asks for the password.** Leave the password off the command and it asks for it, so the password doesn't end up in the terminal's history.
+- **Private security reports** via GitHub (Security → Report a vulnerability).
+
+### Changed
+- **Builds are reproducible.** Go dependencies are pinned (`go.sum`) and verified.
+- **CI checks more.** It also checks formatting and the frontend, runs the tests with the race detector, and scans the image with Trivy.
+- **Releases and updates are automated.** A version tag now creates the GitHub Release on its own, and Dependabot keeps dependencies up to date.
+- **Unraid template.**
+  - The `ADMIN_PASSWORD` field is no longer required, since it's only needed on the first start.
+  - The WebUI button is gone, because signing in through the IP address can't work.
+  - New optional log settings.
+
 ## 1.0.0 (2026-11-10)
 
 First tagged release. Mostly security fixes.

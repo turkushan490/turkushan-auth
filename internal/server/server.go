@@ -72,10 +72,10 @@ func build(cfg *config.Config, st *store.Store, log *slog.Logger, dist fs.FS) (*
 	}
 	s := &Server{
 		cfg: cfg, store: st, log: log, dist: dist, index: index,
-		appOrigin:     cfg.AppURL.Scheme + "://" + cfg.AppURL.Host,
-		redirectBase:  base,
-		loginPerIP:    ratelimit.New(20, time.Minute),
-		loginPerUser:  ratelimit.New(10, time.Minute),
+		appOrigin:      cfg.AppURL.Scheme + "://" + cfg.AppURL.Host,
+		redirectBase:   base,
+		loginPerIP:     ratelimit.New(20, time.Minute),
+		loginPerUser:   ratelimit.New(10, time.Minute),
 		registerPerIP:  ratelimit.New(5, time.Hour),
 		mailPerUser:    ratelimit.New(5, time.Hour),
 		forgotPerIP:    ratelimit.New(5, time.Hour),
@@ -120,6 +120,7 @@ func build(cfg *config.Config, st *store.Store, log *slog.Logger, dist fs.FS) (*
 				r.Use(s.requireStaff)
 				r.Get("/data", s.handleAdminData)
 				r.Get("/audit", s.handleAdminAudit)
+				r.Post("/backup", s.handleBackup)
 				r.Post("/sites", s.handleCreateSite)
 				r.Put("/sites/{id}", s.handleUpdateSite)
 				r.Delete("/sites/{id}", s.handleDeleteSite)

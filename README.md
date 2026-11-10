@@ -71,20 +71,47 @@ Quick version:
 | `SESSION_SECRET` | auto-generated in `/data/secret` | |
 | `PUID` / `PGID` | `99` / `100` | user the app runs as |
 | `PORT` | `3010` | port inside the container |
+| `DATA_DIR` | `/data` | where the database, secret and uploads live |
+| `LOG_LEVEL` | `info` | `debug`, `info`, `warn` or `error` |
+| `LOG_FORMAT` | `text` | `text`, or `json` for log collectors |
 
 Email, Discord and the portal address are set in **Admin panel → Settings**.
 
-## Recovery
+## Images and versions
 
-Locked out of the admin account without a verified email?
+`ghcr.io/turkushan490/turkushan-auth` is published for **amd64 and arm64**.
+
+| Tag | Follows |
+|---|---|
+| `latest` | every change on `main` |
+| `1` | everything up to the next big change |
+| `1.0` | bug fixes only |
+| `1.0.0` | stays on exactly that version |
+
+What changed in each version is in the [changelog](CHANGELOG.md).
+
+## Backup and recovery
+
+Back up the database while the portal runs, in one of these ways:
+
+- **Admin panel → Settings → Download backup**
+- `docker exec turkushan-auth /turkushan-auth backup` (writes to `/data/backups/`)
+
+Locked out of the admin account without a verified email? This asks for the new password:
 
 ```bash
-docker exec turkushan-auth /turkushan-auth reset-password <username> '<new password>'
+docker exec -it turkushan-auth /turkushan-auth reset-password <username>
 ```
 
 ## Development
 
-GitHub Actions (`.github/workflows/build.yml`) builds the frontend, runs `go vet`, `go test` and `govulncheck`, then pushes `ghcr.io/turkushan490/turkushan-auth:latest` on every push to `main`. A `v1.2.3` tag also pushes `:1.2.3`.
+GitHub Actions (`.github/workflows/build.yml`) does the following:
+- builds and checks the frontend;
+- runs `gofmt`, `go vet`, `go test -race` and `govulncheck`;
+- scans the image with Trivy;
+- pushes `ghcr.io/turkushan490/turkushan-auth:latest` (amd64 + arm64) on every push to `main`.
+
+A `v1.2.3` tag also pushes `:1.2.3`, `:1.2` and `:1`, and creates a GitHub Release from that version's section in `CHANGELOG.md`. Dependabot keeps Go, npm, Actions and the Docker base images up to date.
 
 ```bash
 cd web && npm install && npm run build && cd ..

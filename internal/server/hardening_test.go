@@ -169,7 +169,9 @@ func TestForwardAuthSendsGroups(t *testing.T) {
 func TestOAuthPKCEAndSignedState(t *testing.T) {
 	s, h, st := newTestServerFull(t)
 	f := withOAuth(t, s, st)
-	f.set(func() { f.google = map[string]any{"sub": "g-1", "email": "p@example.com", "email_verified": true, "name": "Pia"} })
+	f.set(func() {
+		f.google = map[string]any{"sub": "g-1", "email": "p@example.com", "email_verified": true, "name": "Pia"}
+	})
 
 	c := newClient(t, h)
 	rec, _ := c.do(http.MethodGet, "/api/oauth/google/start", nil, nil)
@@ -207,7 +209,9 @@ func TestOAuthDoesNotAutoLinkStaff(t *testing.T) {
 	owner.post("/api/verify-email", map[string]string{"token": linkToken(t, srv, "chief@example.com", "/verify")})
 	st.DB.Exec(`UPDATE users SET is_admin = 1 WHERE username = 'chief'`)
 
-	f.set(func() { f.google = map[string]any{"sub": "g-x", "email": "chief@example.com", "email_verified": true, "name": "Chief"} })
+	f.set(func() {
+		f.google = map[string]any{"sub": "g-x", "email": "chief@example.com", "email_verified": true, "name": "Chief"}
+	})
 	c := newClient(t, h)
 	if loc := c.oauthLogin("google", ""); loc != "/login?oauth_error=link_first" {
 		t.Errorf("staff auto-link: %q", loc)
@@ -225,7 +229,9 @@ func TestOAuthDoesNotAutoLinkStaff(t *testing.T) {
 func TestOAuthCompleteOnlyOnce(t *testing.T) {
 	s, h, st := newTestServerFull(t)
 	f := withOAuth(t, s, st)
-	f.set(func() { f.google = map[string]any{"sub": "g-d", "email": "d@example.com", "email_verified": true, "name": "Dana"} })
+	f.set(func() {
+		f.google = map[string]any{"sub": "g-d", "email": "d@example.com", "email_verified": true, "name": "Dana"}
+	})
 	c := newClient(t, h)
 	token := pendingToken(t, c.oauthLogin("google", ""))
 
@@ -252,7 +258,9 @@ func TestOAuthOnlyUserChangesEmail(t *testing.T) {
 	s, h, st := newTestServerFull(t)
 	withMail(t, st)
 	f := withOAuth(t, s, st)
-	f.set(func() { f.google = map[string]any{"sub": "g-e", "email": "e@example.com", "email_verified": true, "name": "Eli"} })
+	f.set(func() {
+		f.google = map[string]any{"sub": "g-e", "email": "e@example.com", "email_verified": true, "name": "Eli"}
+	})
 	c := newClient(t, h)
 	c.post("/api/oauth/complete", map[string]string{"p": pendingToken(t, c.oauthLogin("google", ""))})
 	if code, out := c.post("/api/account/email", map[string]string{"email": "eli@example.com"}); code != http.StatusOK {

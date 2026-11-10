@@ -1,6 +1,6 @@
 <script>
   import { untrack } from 'svelte';
-  import { api } from '../../lib/api.js';
+  import { api, apiDownload } from '../../lib/api.js';
   import { toast } from '../../lib/state.svelte.js';
   import { card, btnGhost, btnPrimary, btnDanger, input, label } from './ui.js';
 
@@ -97,6 +97,13 @@
     if (confirm('Remove the Discord webhook? You will no longer get notifications.')) {
       save({ discord_webhook: '' }, 'Discord webhook removed.', 'webhook');
     }
+  }
+
+  async function downloadBackup() {
+    busy = 'backup';
+    const r = await apiDownload('/admin/backup', 'turkushan-auth-backup.db');
+    busy = '';
+    if (!r.ok) toast(r.error, 'error');
   }
 
   async function testWebhook() {
@@ -303,4 +310,17 @@
     </dl>
     <p class="mt-3 text-xs text-zinc-500">These come from the container settings in Unraid (APP_URL, COOKIE_DOMAIN).</p>
   </section>
+
+  {#if data.me.admin}
+    <section class="{card} p-5 sm:p-6">
+      <h2 class="font-semibold">Backup</h2>
+      <p class="mt-1 text-sm text-zinc-400">
+        Download a copy of the whole database: users, groups, sites and settings. Keep it somewhere safe, because it holds the password hashes and the mail and login secrets.
+      </p>
+      <div class="mt-4 flex flex-wrap items-center gap-3">
+        <button class={btnGhost} onclick={downloadBackup} disabled={busy !== ''}>{busy === 'backup' ? 'Preparing…' : 'Download backup'}</button>
+        <span class="text-xs text-zinc-500">Or on the server: <span class="font-mono">docker exec turkushan-auth /turkushan-auth backup</span></span>
+      </div>
+    </section>
+  {/if}
 </div>

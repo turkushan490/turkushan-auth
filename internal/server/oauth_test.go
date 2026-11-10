@@ -175,13 +175,15 @@ func TestOAuthNewUser(t *testing.T) {
 	}
 
 	// Choosing a username and password in the welcome step.
-	f.set(func() { f.google = map[string]any{"sub": "g-2", "email": "bo@gmail.com", "email_verified": true, "name": "!!!"} })
+	f.set(func() {
+		f.google = map[string]any{"sub": "g-2", "email": "bo@gmail.com", "email_verified": true, "name": "!!!"}
+	})
 	c3 := newClient(t, h)
 	token = pendingToken(t, c3.oauthLogin("google", "rd="+url.QueryEscape("https://evil.com/")))
 	for body, want := range map[*map[string]string]int{
-		{"p": token, "username": "ninadevries"}:               http.StatusConflict,
-		{"p": token, "username": "x"}:                         http.StatusBadRequest,
-		{"p": token, "username": "bo.b", "password": "weak"}:  http.StatusBadRequest,
+		{"p": token, "username": "ninadevries"}:              http.StatusConflict,
+		{"p": token, "username": "x"}:                        http.StatusBadRequest,
+		{"p": token, "username": "bo.b", "password": "weak"}: http.StatusBadRequest,
 	} {
 		if code, _ := c3.post("/api/oauth/complete", *body); code != want {
 			t.Errorf("complete %v: %d, want %d", *body, code, want)
@@ -207,7 +209,9 @@ func TestOAuthLinking(t *testing.T) {
 	owner.post("/api/verify-email", map[string]string{"token": linkToken(t, srv, "eva@example.com", "/verify")})
 
 	// Google says the address is NOT verified: never linked on that alone.
-	f.set(func() { f.google = map[string]any{"sub": "g-eva", "email": "eva@example.com", "email_verified": false, "name": "Eva"} })
+	f.set(func() {
+		f.google = map[string]any{"sub": "g-eva", "email": "eva@example.com", "email_verified": false, "name": "Eva"}
+	})
 	c := newClient(t, h)
 	pendingToken(t, c.oauthLogin("google", ""))
 
@@ -234,7 +238,9 @@ func TestOAuthLinking(t *testing.T) {
 	}
 
 	// Connecting Discord from the account page.
-	f.set(func() { f.discord = map[string]any{"id": "d-1", "username": "evagamer", "email": "other@example.com", "verified": true} })
+	f.set(func() {
+		f.discord = map[string]any{"id": "d-1", "username": "evagamer", "email": "other@example.com", "verified": true}
+	})
 	if loc := owner.oauthLogin("discord", "link=1"); loc != "/?connected=discord" {
 		t.Fatalf("link: %q", loc)
 	}
@@ -265,7 +271,9 @@ func TestOAuthLinking(t *testing.T) {
 func TestOAuthStateAndErrors(t *testing.T) {
 	s, h, st := newTestServerFull(t)
 	f := withOAuth(t, s, st)
-	f.set(func() { f.google = map[string]any{"sub": "g-9", "email": "x@example.com", "email_verified": true, "name": "X"} })
+	f.set(func() {
+		f.google = map[string]any{"sub": "g-9", "email": "x@example.com", "email_verified": true, "name": "X"}
+	})
 
 	callback := func(c *client, query string) string {
 		rec, _ := c.do(http.MethodGet, "/api/oauth/google/callback?"+query, nil, nil)

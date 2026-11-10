@@ -1,7 +1,7 @@
 # Security
 
 How turkushan-auth protects your sites, where each measure lives in the code, and which test checks it.
-Found a problem? Open a [GitHub issue](https://github.com/turkushan490/turkushan-auth/issues). For anything sensitive, ask for a private contact there first.
+Found a security problem? Report it privately at [Security → Report a vulnerability](https://github.com/turkushan490/turkushan-auth/security/advisories/new). For anything else, open a [GitHub issue](https://github.com/turkushan490/turkushan-auth/issues).
 
 ## Checklist
 
@@ -38,7 +38,8 @@ Found a problem? Open a [GitHub issue](https://github.com/turkushan490/turkushan
 | No SSRF via settings | the Discord webhook must be a real `discord.com/api/webhooks/…` URL; notifications can't ping @everyone or roles | `internal/notify/discord.go` | `TestValidDiscordWebhook` |
 | Browser hardening | CSP (`default-src 'self'`, no inline scripts), `frame-ancestors 'none'`, `X-Frame-Options`, `nosniff`, `Referrer-Policy`, COOP, `Permissions-Policy`, HSTS on https; the frontend never renders raw HTML | `internal/server/server.go` | `TestSPA` |
 | Small attack surface | pure-Go static binary on distroless (no shell), runs as `PUID:PGID` (99:100), request size and time limits | `Dockerfile`, `cmd/turkushan-auth` | – |
-| Dependencies | `govulncheck` runs on every build | `.github/workflows/build.yml` | CI |
+| Dependencies | `go.sum` is committed and verified; `govulncheck` and a Trivy image scan run on every build; Dependabot proposes updates weekly | `.github/workflows/build.yml`, `.github/dependabot.yml` | CI |
+| Backups | admin-only download and a `backup` command, both a consistent copy made while running (`VACUUM INTO`) | `internal/server/admin.go`, `cmd/turkushan-auth` | `TestBackupDownload` |
 
 ## Known limitations
 

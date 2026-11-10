@@ -1,18 +1,24 @@
-# 1. Frontend
-FROM node:22-alpine AS web
+# 1. Frontend (same output on every platform, so it is built once on the build machine)
+FROM --platform=$BUILDPLATFORM node:22-alpine AS web
 WORKDIR /web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
 COPY web/ ./
 RUN npm run build
 
-# 2. Go binary (pure Go SQLite driver, so no CGO and a fully static binary)
-FROM golang:1-alpine AS build
+# 2. Go binary (pure Go SQLite driver, so no CGO and a fully static binary).
+#    Cross-compiled on the build machine for each target platform (amd64, arm64).
+FROM --platform=$BUILDPLATFORM golang:1.27-alpine AS build
+ARG TARGETOS
+ARG TARGETARCH
+ARG VERSION=dev
 WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download && go mod verify
 COPY . .
 COPY --from=web /web/dist ./web/dist
-RUN go mod tidy \
- && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/turkushan-auth ./cmd/turkushan-auth \
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
+    go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /out/turkushan-auth ./cmd/turkushan-auth \
  && mkdir -p /out/data
 
 # 3. Runtime: no shell, no package manager. Starts as root only to chown /data,

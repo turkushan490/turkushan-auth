@@ -251,9 +251,9 @@ func TestRegisterValidation(t *testing.T) {
 		code int
 	}{
 		{map[string]string{"username": "ab", "password": "Secret!1"}, http.StatusBadRequest},
-		{map[string]string{"username": "erin", "password": "secret!1"}, http.StatusBadRequest},  // no capital
-		{map[string]string{"username": "erin", "password": "Secret11"}, http.StatusBadRequest},  // no symbol
-		{map[string]string{"username": "erin", "password": "Se!1"}, http.StatusBadRequest},      // too short
+		{map[string]string{"username": "erin", "password": "secret!1"}, http.StatusBadRequest}, // no capital
+		{map[string]string{"username": "erin", "password": "Secret11"}, http.StatusBadRequest}, // no symbol
+		{map[string]string{"username": "erin", "password": "Se!1"}, http.StatusBadRequest},     // too short
 		{map[string]string{"username": "erin", "password": "Secret!1", "email": "nope"}, http.StatusBadRequest},
 		{map[string]string{"username": "erin", "password": "Secret!1", "email": "Erin@Example.com"}, http.StatusOK},
 		{map[string]string{"username": "Erin", "password": "Secret!1"}, http.StatusConflict},
