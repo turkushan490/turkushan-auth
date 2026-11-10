@@ -14,6 +14,8 @@
   let show = $state(false);
   const id = 'f-' + Math.random().toString(36).slice(2, 9);
   const isPassword = $derived(type === 'password');
+  // Screen readers read the hint and anything below the field (like password rules) with it.
+  const describedBy = $derived([hint && id + '-hint', children && id + '-extra'].filter(Boolean).join(' ') || undefined);
 </script>
 
 <div>
@@ -27,6 +29,7 @@
       {name}
       {autocomplete}
       {required}
+      aria-describedby={describedBy}
       type={isPassword && show ? 'text' : type}
       bind:value
       autocapitalize="off"
@@ -54,9 +57,9 @@
     {/if}
   </div>
   {#if hint}
-    <p class="mt-1.5 text-xs text-zinc-500">{hint}</p>
+    <p id="{id}-hint" class="mt-1.5 text-xs text-zinc-500">{hint}</p>
   {/if}
   {#if children}
-    {@render children()}
+    <div id="{id}-extra">{@render children()}</div>
   {/if}
 </div>

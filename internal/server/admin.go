@@ -253,12 +253,23 @@ func (s *Server) handleAdminAudit(w http.ResponseWriter, r *http.Request) {
 	if !s.need(w, r, store.PermAudit) {
 		return
 	}
-	entries, err := s.store.ListAudit(r.Context(), 300)
+	// Pages of 100, newest first: ?before=<id of the last entry shown>&q=<search>.
+	const page = 100
+	before, _ := strconv.ParseInt(r.URL.Query().Get("before"), 10, 64)
+	q := strings.TrimSpace(r.URL.Query().Get("q"))
+	if len(q) > 100 {
+		q = q[:100]
+	}
+	entries, err := s.store.ListAudit(r.Context(), q, before, page+1)
 	if err != nil {
 		s.serverError(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"entries": entries})
+	more := len(entries) > page
+	if more {
+		entries = entries[:page]
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"entries": entries, "more": more})
 }
 
 // handleBackup sends the admin a consistent copy of the whole database. Admins

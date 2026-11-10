@@ -7,6 +7,7 @@
   import { passwordRules } from '../lib/password.js';
   import { app, link, refreshSession, toast, oauthErrors } from '../lib/state.svelte.js';
   import ProviderButtons from '../components/ProviderButtons.svelte';
+  import { confirmDialog } from '../lib/confirm.svelte.js';
 
   const user = $derived(app.session.user);
 
@@ -29,7 +30,7 @@
   const canConnect = $derived((app.session.providers || []).filter((p) => !logins.includes(p)));
 
   async function disconnect(p) {
-    if (!confirm(`Disconnect ${providerNames[p]}? You can't sign in with it anymore.`)) return;
+    if (!(await confirmDialog({ title: `Disconnect ${providerNames[p]}?`, text: "You can't sign in with it anymore.", ok: 'Disconnect', danger: true }))) return;
     busy = true;
     const r = await api(`/account/logins/${p}`, undefined, 'DELETE');
     busy = false;

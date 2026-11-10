@@ -69,8 +69,7 @@ FROM site_access a
 JOIN users u ON u.id = a.user_id
 JOIN sites st ON st.id = a.site_id
 ORDER BY CASE a.status WHEN 'pending' THEN 0 ELSE 1 END,
-         COALESCE(a.decided_at, a.requested_at) DESC
-LIMIT 500`)
+         COALESCE(a.decided_at, a.requested_at) DESC`)
 	if err != nil {
 		return nil, err
 	}

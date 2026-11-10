@@ -4,6 +4,7 @@
   import Toggle from '../../components/Toggle.svelte';
   import CodeBlock from '../../components/CodeBlock.svelte';
   import SiteForm from './SiteForm.svelte';
+  import { confirmDialog } from '../../lib/confirm.svelte.js';
   import { card, btnGhost, btnPrimary, btnDanger } from './ui.js';
 
   let { data, reload } = $props();
@@ -42,7 +43,7 @@
   }
 
   async function remove(site) {
-    if (!confirm(`Remove ${site.name}? Everyone's access to it is removed too. Also remove its config in NPM, or visitors will get an error.`)) return;
+    if (!(await confirmDialog({ title: `Remove ${site.name}?`, text: "Everyone's access to it is removed too. Also remove its config in NPM, or visitors will get an error.", ok: 'Remove', danger: true }))) return;
     const r = await api(`/admin/sites/${site.id}`, undefined, 'DELETE');
     if (!r.ok) return toast(r.data.error, 'error');
     toast(`${site.name} removed.`);

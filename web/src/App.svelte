@@ -13,6 +13,7 @@
   import Verify from './pages/Verify.svelte';
   import Welcome from './pages/Welcome.svelte';
   import Toast from './components/Toast.svelte';
+  import ConfirmHost from './components/ConfirmHost.svelte';
 
   refreshSession();
 
@@ -71,3 +72,4 @@
 {/if}
 
 <Toast />
+<ConfirmHost />

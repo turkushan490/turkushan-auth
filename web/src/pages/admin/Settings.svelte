@@ -1,6 +1,7 @@
 <script>
   import { untrack } from 'svelte';
   import { api, apiDownload } from '../../lib/api.js';
+  import { confirmDialog } from '../../lib/confirm.svelte.js';
   import { toast } from '../../lib/state.svelte.js';
   import { card, btnGhost, btnPrimary, btnDanger, input, label } from './ui.js';
 
@@ -49,7 +50,7 @@
 
   async function removeLogin(name) {
     const label = data.settings.oauth[name].label;
-    if (!confirm(`Turn off sign in with ${label}? People who only use ${label} can't sign in until you turn it back on.`)) return;
+    if (!(await confirmDialog({ title: `Turn off sign in with ${label}?`, text: `People who only use ${label} can't sign in until you turn it back on.`, ok: 'Turn off', danger: true }))) return;
     if (await save({ oauth: { [name]: { remove: true } } }, `Sign in with ${label} is off.`, 'oauth-' + name)) oauthDraft[name] = { client_id: '', client_secret: '' };
   }
 
@@ -93,8 +94,8 @@
     if (await save({ discord_webhook: webhook }, 'Discord webhook saved.', 'webhook')) webhook = '';
   }
 
-  function removeWebhook() {
-    if (confirm('Remove the Discord webhook? You will no longer get notifications.')) {
+  async function removeWebhook() {
+    if (await confirmDialog({ title: 'Remove the Discord webhook?', text: 'You will no longer get notifications.', ok: 'Remove', danger: true })) {
       save({ discord_webhook: '' }, 'Discord webhook removed.', 'webhook');
     }
   }

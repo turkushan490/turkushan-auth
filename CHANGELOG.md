@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.2.0 (2026-11-10)
+
+Easier and safer to use, with screen readers and keyboard too.
+
+### New
+- **The app's own "Are you sure?" dialog.** It replaces the browser's pop-up everywhere. Blocking a user, removing an admin and removing someone from a group or rule now ask first too.
+- **Accent color check.** The Appearance tab warns when your accent color makes button text or links hard to read (WCAG contrast). Button text now picks dark or white by real contrast.
+- **Warning before you lose changes.** Leaving the Appearance tab (or closing the page) with unsaved changes asks first.
+- **The Users tab remembers your filters.** Filters, sorting and the opened user are kept in the address, so a reload or a shared link shows the same list. Long lists load 50 at a time.
+- **Audit log search and paging.** Search by who, what or which, and load older entries. It used to stop at the newest 300.
+- **Live password check on the reset page.** The page shows "passwords don't match" while you type.
+
+### Fixed
+- **Dialogs work properly from the keyboard.** Focus moves into the dialog, Tab stays inside it, Esc closes it, and focus goes back where it was.
+- **Screen readers get more.**
+  - They now announce messages.
+  - They read form hints and password rules together with the field.
+  - Switches show a focus ring.
+  - The user search box has a label.
+- **Old access requests show up again.** Requests no longer disappear from the panel after the 500th.
+- **Less checking in the background.** The "waiting for approval" page only checks again while its tab is visible.
+
+### Internal
+- The Users and Groups tabs are split into smaller components.
+
 ## 1.1.0 (2026-11-10)
 
 Backups, version tags and arm64.

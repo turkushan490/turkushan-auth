@@ -43,11 +43,21 @@
   const waiting = $derived(
     result?.status === 'pending' || (result?.status === 'email_required' && emailStep === 'sent'),
   );
+  // Only while the tab is visible; coming back to the tab checks right away.
   $effect(() => {
     if (!waiting) return;
     waited = true;
-    const timer = setInterval(() => check(true), 5000);
-    return () => clearInterval(timer);
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') check(true);
+    }, 5000);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') check(true);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   });
 
   const siteName = $derived(result?.site?.name || host || 'this site');

@@ -13,7 +13,8 @@
   const invite = params.get('invite') === '1'; // link from an invite mail: first password
 
   let password = $state('');
-  let confirm = $state('');
+  let confirmPw = $state('');
+  const mismatch = $derived(confirmPw.length > 0 && confirmPw !== password);
   let error = $state('');
   let busy = $state(false);
 
@@ -24,7 +25,7 @@
       error = 'Your password does not meet all the rules yet.';
       return;
     }
-    if (confirm !== password) {
+    if (confirmPw !== password) {
       error = 'The passwords do not match.';
       return;
     }
@@ -61,7 +62,9 @@
       <Field label={invite ? 'Password' : 'New password'} type="password" autocomplete="new-password" required bind:value={password}>
         <PasswordRules {password} />
       </Field>
-      <Field label={invite ? 'Confirm password' : 'Confirm new password'} type="password" autocomplete="new-password" required bind:value={confirm} />
+      <Field label={invite ? 'Confirm password' : 'Confirm new password'} type="password" autocomplete="new-password" required bind:value={confirmPw}>
+        {#if mismatch}<p class="mt-1.5 text-xs text-rose-400">The passwords do not match yet.</p>{/if}
+      </Field>
       <div class="pt-2">
         <SubmitButton {busy}>Save new password</SubmitButton>
       </div>

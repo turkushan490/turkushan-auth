@@ -1,4 +1,5 @@
 import { api } from './api.js';
+import { confirmDialog } from './confirm.svelte.js';
 
 export const app = $state({
   loading: true,
@@ -28,6 +29,20 @@ export async function refreshSession() {
   app.loading = false;
 }
 
+// A page with unsaved changes sets this to a function that returns a question
+// ("Leave without saving?") while there's something to lose, or '' when not.
+let leaveGuard = null;
+export function setLeaveGuard(fn) {
+  leaveGuard = fn;
+  return () => {
+    if (leaveGuard === fn) leaveGuard = null;
+  };
+}
+
+window.addEventListener('beforeunload', (e) => {
+  if (leaveGuard?.()) e.preventDefault();
+});
+
 export function navigate(to) {
   history.pushState({}, '', to);
   app.path = location.pathname;
@@ -35,10 +50,13 @@ export function navigate(to) {
 }
 
 // onclick handler for in-app <a href="..."> links.
-export function link(e) {
+export async function link(e) {
   if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
   e.preventDefault();
-  navigate(e.currentTarget.getAttribute('href'));
+  const to = e.currentTarget.getAttribute('href');
+  const question = leaveGuard?.();
+  if (question && !(await confirmDialog({ title: question, ok: 'Leave', cancel: 'Stay', danger: true }))) return;
+  navigate(to);
 }
 
 // The ?rd= the user came in with, passed along between login and register.

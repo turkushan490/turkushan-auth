@@ -18,11 +18,34 @@ export const accentPresets = ['#6366f1', '#3b82f6', '#06b6d4', '#10b981', '#f59e
 
 export const isHex = (c) => /^#[0-9a-f]{6}$/i.test(c || '');
 
-// Black or white, whichever reads better on the color.
+// WCAG relative luminance and contrast ratio (1 to 21).
+function luminance(hex) {
+  const [r, g, b] = [1, 3, 5].map((i) => {
+    const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+export function contrast(a, b) {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+const dark = '#18181b';
+const pageBg = '#09090b'; // zinc-950, behind accent-colored links and text
+
+// Text on an accent-colored button: dark or white, whichever has more contrast.
 function textOn(hex) {
-  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
-  const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-  return lum > 0.6 ? '#18181b' : '#ffffff';
+  return contrast(hex, dark) >= contrast(hex, '#ffffff') ? dark : '#ffffff';
+}
+
+// How readable an accent is: button text (needs 4.5:1) and accent text on the dark page (3:1).
+export function accentReadability(hex) {
+  if (!isHex(hex)) return { button: 21, onPage: 21, ok: true };
+  const button = contrast(hex, textOn(hex));
+  const onPage = contrast(hex, pageBg);
+  return { button, onPage, ok: button >= 4.5 && onPage >= 3 };
 }
 
 // The UI uses Tailwind's indigo scale as its accent; overriding those variables recolors everything.

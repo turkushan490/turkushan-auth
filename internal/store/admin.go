@@ -2,6 +2,8 @@ package store
 
 import (
 	"context"
+	"math"
+	"strings"
 )
 
 type UserSummary struct {
@@ -107,9 +109,17 @@ type AuditEntry struct {
 	CreatedAt int64  `json:"created_at"`
 }
 
-func (s *Store) ListAudit(ctx context.Context, limit int) ([]AuditEntry, error) {
-	rows, err := s.DB.QueryContext(ctx,
-		`SELECT id, actor, action, target, detail, ip, created_at FROM audit_log ORDER BY id DESC LIMIT ?`, limit)
+// ListAudit returns up to limit entries older than before (0 = from the newest),
+// newest first. A non-empty search matches who, what, target, detail or IP.
+func (s *Store) ListAudit(ctx context.Context, search string, before int64, limit int) ([]AuditEntry, error) {
+	if before <= 0 {
+		before = math.MaxInt64
+	}
+	like := "%" + strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(strings.ToLower(search)) + "%"
+	rows, err := s.DB.QueryContext(ctx, `
+SELECT id, actor, action, target, detail, ip, created_at FROM audit_log
+WHERE id < ? AND (? = '%%' OR lower(actor || ' ' || action || ' ' || target || ' ' || detail || ' ' || ip) LIKE ? ESCAPE '\')
+ORDER BY id DESC LIMIT ?`, before, like, like, limit)
 	if err != nil {
 		return nil, err
 	}

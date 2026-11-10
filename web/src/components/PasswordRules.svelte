@@ -13,7 +13,7 @@
       {:else}
         <svg viewBox="0 0 24 24" class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="8" /></svg>
       {/if}
-      {rule.text}
+      {rule.text}<span class="sr-only">{rule.ok ? ': done' : ': not yet'}</span>
     </li>
   {/each}
 </ul>

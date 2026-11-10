@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"fmt"
 	"testing"
 )
 
@@ -53,8 +54,36 @@ func TestAdminUserActions(t *testing.T) {
 	}
 
 	s.Audit(ctx, "turkushan", "user.delete", "alice", "", "192.0.2.1")
-	entries, err := s.ListAudit(ctx, 10)
+	entries, err := s.ListAudit(ctx, "", 0, 10)
 	if err != nil || len(entries) != 1 || entries[0].Action != "user.delete" {
 		t.Fatalf("audit: %+v %v", entries, err)
+	}
+}
+
+func TestAuditPagingAndSearch(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+	for i := 0; i < 5; i++ {
+		s.Audit(ctx, "boss", "site.create", fmt.Sprintf("site%d.example.com", i), "", "")
+	}
+	s.Audit(ctx, "helper", "user.block", "mallory", "100%_sure", "")
+
+	first, _ := s.ListAudit(ctx, "", 0, 3)
+	if len(first) != 3 || first[0].Target != "mallory" {
+		t.Fatalf("first page: %+v", first)
+	}
+	next, _ := s.ListAudit(ctx, "", first[2].ID, 3)
+	if len(next) != 3 || next[0].ID >= first[2].ID {
+		t.Fatalf("next page: %+v", next)
+	}
+	if hits, _ := s.ListAudit(ctx, "MALLORY", 0, 10); len(hits) != 1 {
+		t.Errorf("search by target: %d", len(hits))
+	}
+	if hits, _ := s.ListAudit(ctx, "site.create", 0, 10); len(hits) != 5 {
+		t.Errorf("search by action: %d", len(hits))
+	}
+	// % and _ are matched literally, not as wildcards.
+	if hits, _ := s.ListAudit(ctx, "%_", 0, 10); len(hits) != 1 {
+		t.Errorf("wildcards not escaped: %d", len(hits))
 	}
 }

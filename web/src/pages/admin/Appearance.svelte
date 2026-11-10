@@ -1,8 +1,9 @@
 <script>
   import { onDestroy, untrack } from 'svelte';
   import { api, apiUpload } from '../../lib/api.js';
-  import { app, refreshSession, toast } from '../../lib/state.svelte.js';
-  import { fonts, accentPresets, defaultAccent, isHex } from '../../lib/appearance.js';
+  import { app, refreshSession, setLeaveGuard, toast } from '../../lib/state.svelte.js';
+  import { fonts, accentPresets, defaultAccent, isHex, accentReadability } from '../../lib/appearance.js';
+  import { confirmDialog } from '../../lib/confirm.svelte.js';
   import Backdrop from '../../components/Backdrop.svelte';
   import Logo from '../../components/Logo.svelte';
   import { card, btnGhost, btnPrimary, btnDanger, input, label } from './ui.js';
@@ -35,6 +36,16 @@
   });
   onDestroy(() => (app.preview = null));
 
+  // Unsaved changes: ask before leaving the tab or closing the page.
+  const fields = ['site_name', 'page_title', 'accent', 'font', 'bg_type', 'bg_color', 'bg_color2', 'overlay'];
+  const snapshot = () => JSON.stringify(fields.map((f) => String(draft[f] ?? '')));
+  let savedSnapshot = $state(untrack(snapshot));
+  const dirty = $derived(snapshot() !== savedSnapshot);
+  onDestroy(setLeaveGuard(() => (dirty ? 'Leave without saving the appearance?' : '')));
+
+  // Accent readability (WCAG): button text needs 4.5:1, accent text on the page 3:1.
+  const readable = $derived(accentReadability(isHex(draft.accent) ? draft.accent : defaultAccent));
+
   const bgTypes = [
     { id: 'default', name: 'Default' },
     { id: 'color', name: 'Color' },
@@ -60,6 +71,7 @@
     );
     busy = '';
     if (!r.ok) return toast(r.data.error, 'error');
+    savedSnapshot = snapshot();
     await refreshSession();
     toast('Appearance saved. Everyone sees the new look.');
   }
@@ -97,8 +109,8 @@
     toast(kind === 'logo' ? 'Logo removed.' : 'Background image removed.');
   }
 
-  function resetAll() {
-    if (!confirm('Go back to the default look? Uploaded images stay until you remove them.')) return;
+  async function resetAll() {
+    if (!(await confirmDialog({ title: 'Go back to the default look?', text: 'Uploaded images stay until you remove them.', ok: 'Reset', danger: true }))) return;
     Object.assign(draft, { site_name: '', page_title: '', accent: '', font: '', bg_type: 'default', overlay: 50 });
     save();
   }
@@ -172,6 +184,13 @@
           <input class="{input} !w-28 font-mono" bind:value={draft.accent} placeholder={defaultAccent} maxlength="7" aria-label="Accent color code" />
         </div>
         <p class="mt-1.5 text-xs text-zinc-500">Used for buttons, links and highlights.</p>
+        {#if !readable.ok}
+          <p class="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200" role="status">
+            {#if readable.button < 4.5}Text on buttons in this color is hard to read (contrast {readable.button.toFixed(1)}:1, needs 4.5:1).{/if}
+            {#if readable.onPage < 3}Links in this color are hard to see on the dark background (contrast {readable.onPage.toFixed(1)}:1, needs 3:1).{/if}
+            Pick a darker or brighter shade.
+          </p>
+        {/if}
       </div>
 
       <div class="mt-5">
