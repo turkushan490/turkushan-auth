@@ -99,6 +99,9 @@ func (s *Server) handleForwardAuth(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "Missing X-Original-URL header: check the NPM advanced config.")
 		return
 	}
+	// The snippet builds this URL from nginx's $host (the server name it really
+	// matched). Older snippets used $http_host, the raw Host header, which a
+	// visitor can set to another site: re-paste the snippet after updating.
 	host := strings.ToLower(u.Hostname())
 
 	user := s.currentUser(r)
@@ -115,9 +118,15 @@ func (s *Server) handleForwardAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if d.Status == accessOK {
+		// The snippet hands these to the app as Remote-User / Remote-Email / Remote-Groups.
 		w.Header().Set("X-Auth-User", user.Username)
 		if user.EmailVerified {
 			w.Header().Set("X-Auth-Email", user.Email)
+		}
+		if groups, err := s.store.GroupNames(r.Context(), user.ID); err != nil {
+			s.log.Error("forward auth groups", "err", err)
+		} else if len(groups) > 0 {
+			w.Header().Set("X-Auth-Groups", strings.Join(groups, ","))
 		}
 		w.WriteHeader(http.StatusOK)
 		return

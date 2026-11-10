@@ -179,6 +179,21 @@ func resetPassword(log *slog.Logger, args []string) error {
 }
 
 func cleanupSessions(ctx context.Context, st *store.Store, log *slog.Logger) {
+	clean := func() {
+		n, err := st.DeleteExpiredSessions(ctx)
+		if err != nil {
+			log.Error("session cleanup", "err", err)
+		} else if n > 0 {
+			log.Info("expired sessions removed", "count", n)
+		}
+		if err := st.DeleteExpiredTokens(ctx); err != nil {
+			log.Error("token cleanup", "err", err)
+		}
+		if err := st.DeleteExpiredPending(ctx); err != nil {
+			log.Error("pending sign-up cleanup", "err", err)
+		}
+	}
+	clean() // right away too, so a container that restarts often still cleans up
 	t := time.NewTicker(time.Hour)
 	defer t.Stop()
 	for {
@@ -186,18 +201,7 @@ func cleanupSessions(ctx context.Context, st *store.Store, log *slog.Logger) {
 		case <-ctx.Done():
 			return
 		case <-t.C:
-			n, err := st.DeleteExpiredSessions(ctx)
-			if err != nil {
-				log.Error("session cleanup", "err", err)
-			} else if n > 0 {
-				log.Info("expired sessions removed", "count", n)
-			}
-			if err := st.DeleteExpiredTokens(ctx); err != nil {
-				log.Error("token cleanup", "err", err)
-			}
-			if err := st.DeleteExpiredPending(ctx); err != nil {
-				log.Error("pending sign-up cleanup", "err", err)
-			}
+			clean()
 		}
 	}
 }

@@ -75,7 +75,7 @@
   // Password
   let current = $state('');
   let next = $state('');
-  let confirm = $state('');
+  let confirmPw = $state('');
 
   async function savePassword(e) {
     e.preventDefault();
@@ -84,7 +84,7 @@
       error = 'Your new password does not meet all the rules yet.';
       return;
     }
-    if (next !== confirm) {
+    if (next !== confirmPw) {
       error = 'The new passwords do not match.';
       return;
     }
@@ -96,7 +96,7 @@
       return;
     }
     toast(r.data.message);
-    current = next = confirm = '';
+    current = next = confirmPw = '';
     open = '';
     refreshSession();
   }
@@ -174,7 +174,7 @@
             <Field label="New password" type="password" autocomplete="new-password" required bind:value={next}>
               <PasswordRules password={next} />
             </Field>
-            <Field label="Confirm new password" type="password" autocomplete="new-password" required bind:value={confirm} />
+            <Field label="Confirm new password" type="password" autocomplete="new-password" required bind:value={confirmPw} />
             <button type="submit" disabled={busy}
               class="w-full rounded-lg bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:opacity-60">
               {busy ? 'Saving…' : 'Change password'}

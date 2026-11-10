@@ -120,6 +120,12 @@
     </form>
   </section>
 
+  {#if !data.me.admin}
+    <section class="{card} p-5 text-sm text-zinc-400 sm:p-6">
+      <h2 class="font-semibold text-zinc-100">Email and Discord/Google sign-in</h2>
+      <p class="mt-1">Only admins can change these, because they decide where password-reset mails go.</p>
+    </section>
+  {:else}
   <section class="{card} p-5 sm:p-6">
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div>
@@ -253,6 +259,7 @@
       {/each}
     </div>
   </section>
+  {/if}
 
   <section class="{card} p-5 sm:p-6">
     <div class="flex flex-wrap items-start justify-between gap-3">

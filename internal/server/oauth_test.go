@@ -21,6 +21,8 @@ type fakeProvider struct {
 	google  map[string]any
 	discord map[string]any
 	roles   map[string][]string // Discord server id → role ids; absent = not a member
+
+	verifier string // last PKCE code_verifier the token endpoint received
 }
 
 func (f *fakeProvider) set(fn func()) {
@@ -40,6 +42,9 @@ func withOAuth(t *testing.T, s *Server, st *store.Store) *fakeProvider {
 	}
 	mux.HandleFunc("/token", func(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
+		f.mu.Lock()
+		f.verifier = r.Form.Get("code_verifier")
+		f.mu.Unlock()
 		if r.Form.Get("code") != "good" || r.Form.Get("client_secret") == "" || !strings.Contains(r.Form.Get("redirect_uri"), "/callback") {
 			http.Error(w, `{"error":"invalid_grant"}`, http.StatusBadRequest)
 			return

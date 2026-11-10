@@ -61,6 +61,7 @@ export const oauthErrors = {
   provider: "We couldn't confirm who you are with that service. Try again.",
   blocked: 'This account is blocked.',
   taken: 'That account is already connected to another user.',
+  link_first: 'This address belongs to an account with admin rights. Sign in with your password, then connect it on your account page.',
 };
 
 export function withRD(path, rd) {

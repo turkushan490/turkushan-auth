@@ -54,7 +54,11 @@ func rightsFrom(r *http.Request) store.Rights {
 	return r.Context().Value(rightsKey{}).(store.Rights)
 }
 
-const msgNoRight = "You don't have the right to do that."
+const (
+	msgNoRight           = "You don't have the right to do that."
+	msgOpenSiteAdminOnly = "Only admins can open a site to everyone who signs in. Keep \"Needs approval\" on."
+	msgAdminOnlySecrets  = "Only admins can change the email server and the Discord/Google login settings."
+)
 
 // need answers 403 unless the staff member has the global right.
 func (s *Server) need(w http.ResponseWriter, r *http.Request, perm string) bool {
@@ -260,12 +264,32 @@ func nginxSnippet(upstream, portal string) string {
 	if upstream == "" {
 		upstream = "http://YOUR-APP-IP:PORT"
 	}
+	// $host (not $http_host): the name nginx actually matched, which a visitor
+	// can't point at another site with a forged Host header.
+	// proxy_set_header in a location turns off the server-level ones, so the usual
+	// NPM proxy headers are repeated here. Setting Remote-* also replaces any
+	// copy the visitor sent, so the app can trust them.
 	return fmt.Sprintf(`location / {
   proxy_pass %s;
 
   auth_request /turkushan-auth;
   auth_request_set $redirection_url $upstream_http_x_auth_location;
+  auth_request_set $auth_user $upstream_http_x_auth_user;
+  auth_request_set $auth_email $upstream_http_x_auth_email;
+  auth_request_set $auth_groups $upstream_http_x_auth_groups;
   error_page 401 403 =302 $redirection_url;
+
+  proxy_set_header Host $host;
+  proxy_set_header X-Forwarded-Scheme $scheme;
+  proxy_set_header X-Forwarded-Proto $scheme;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_http_version 1.1;
+  proxy_set_header Upgrade $http_upgrade;
+  proxy_set_header Connection $http_connection;
+  proxy_set_header Remote-User $auth_user;
+  proxy_set_header Remote-Email $auth_email;
+  proxy_set_header Remote-Groups $auth_groups;
 }
 
 location /turkushan-auth {
@@ -273,7 +297,7 @@ location /turkushan-auth {
   proxy_pass %s/api/auth/nginx;
   proxy_pass_request_body off;
   proxy_set_header content-length "";
-  proxy_set_header x-original-url $scheme://$http_host$request_uri;
+  proxy_set_header x-original-url $scheme://$host$request_uri;
   proxy_set_header x-original-method $request_method;
   proxy_set_header x-forwarded-for $proxy_add_x_forwarded_for;
   proxy_set_header x-real-ip $remote_addr;
@@ -360,6 +384,10 @@ func (s *Server) handleCreateSite(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, msg)
 		return
 	}
+	if !st.RequireApproval && !rightsFrom(r).Admin {
+		writeError(w, http.StatusForbidden, msgOpenSiteAdminOnly)
+		return
+	}
 	if _, err := s.store.CreateSite(r.Context(), st); err != nil {
 		if errors.Is(err, store.ErrHostTaken) {
 			writeError(w, http.StatusConflict, st.Host+" is already added.")
@@ -391,6 +419,22 @@ func (s *Server) handleUpdateSite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	st.ID = id
+	if !st.RequireApproval && !rightsFrom(r).Admin {
+		// Only admins may open a site to everyone; editing one that is already open is fine.
+		old, err := s.store.SiteByID(r.Context(), id)
+		if errors.Is(err, store.ErrNotFound) {
+			writeError(w, http.StatusNotFound, "That site no longer exists.")
+			return
+		}
+		if err != nil {
+			s.serverError(w, r, err)
+			return
+		}
+		if old.RequireApproval {
+			writeError(w, http.StatusForbidden, msgOpenSiteAdminOnly)
+			return
+		}
+	}
 	switch err := s.store.UpdateSite(r.Context(), st); {
 	case errors.Is(err, store.ErrNotFound):
 		writeError(w, http.StatusNotFound, "That site no longer exists.")
@@ -510,6 +554,17 @@ func (s *Server) targetUser(w http.ResponseWriter, r *http.Request, verb string)
 		writeError(w, http.StatusForbidden, "Only admins can "+verb+" an admin account.")
 		return nil
 	}
+	// Otherwise a helper with only the "users" right could reset the password of
+	// someone with more rights, sign in as them and gain those rights.
+	theirs, err := s.store.UserRights(r.Context(), u)
+	if err != nil {
+		s.serverError(w, r, err)
+		return nil
+	}
+	if !rightsFrom(r).Covers(theirs) {
+		writeError(w, http.StatusForbidden, "This person has rights you don't have yourself, so you can't "+verb+" their account.")
+		return nil
+	}
 	return u
 }
 
@@ -609,6 +664,12 @@ func (s *Server) handleUpdateSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
+	// Mail server and login apps hold secrets and decide where reset links go:
+	// with them, a "settings" helper could take over an admin account.
+	if (in.hasMail() || len(in.OAuth) > 0) && !rightsFrom(r).Admin {
+		writeError(w, http.StatusForbidden, msgAdminOnlySecrets)
+		return
+	}
 	if in.PortalURL != nil {
 		v := strings.TrimSuffix(strings.TrimSpace(*in.PortalURL), "/")
 		if v != "" && !validBaseURL(v) {

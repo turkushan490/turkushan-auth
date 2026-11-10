@@ -106,6 +106,26 @@ SELECT provider, subject, email, verified, display, data, rd FROM oauth_pending 
 	return &p, err
 }
 
+// ClaimPending removes a pending sign-up and reports whether this call was the
+// one that removed it, so a double submit can't create two accounts.
+func (s *Store) ClaimPending(ctx context.Context, token string) (bool, error) {
+	res, err := s.DB.ExecContext(ctx, `DELETE FROM oauth_pending WHERE id = ? AND expires_at > ?`, HashToken(token), now())
+	if err != nil {
+		return false, err
+	}
+	n, err := res.RowsAffected()
+	return n == 1, err
+}
+
+// RestorePending puts a claimed sign-up back under the same token, when
+// creating the account failed after the claim (e.g. the username was just taken).
+func (s *Store) RestorePending(ctx context.Context, token string, p *Pending, ttl time.Duration) error {
+	_, err := s.DB.ExecContext(ctx, `
+INSERT OR IGNORE INTO oauth_pending (id, provider, subject, email, verified, display, data, rd, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		HashToken(token), p.Provider, p.Subject, p.Email, p.Verified, p.Display, p.Data, p.RD, now()+int64(ttl/time.Second))
+	return err
+}
+
 func (s *Store) DeletePending(ctx context.Context, token string) error {
 	_, err := s.DB.ExecContext(ctx, `DELETE FROM oauth_pending WHERE id = ?`, HashToken(token))
 	return err

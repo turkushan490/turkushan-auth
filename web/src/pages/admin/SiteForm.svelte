@@ -4,7 +4,8 @@
   import { btnGhost, btnPrimary, input, label } from './ui.js';
 
   // onsave(values) resolves to an error message, or '' when saved.
-  let { initial = {}, base, submitText = 'Save', onsave, oncancel } = $props();
+  // canOpen: may turn "Needs approval" off (admins only, unless the site already is open).
+  let { initial = {}, base, submitText = 'Save', canOpen = true, onsave, oncancel } = $props();
 
   // The form edits a copy; later changes to `initial` (a reload) don't overwrite what's typed.
   const start = untrack(() => ({ ...initial }));
@@ -41,7 +42,11 @@
     <p class="mt-1.5 text-xs text-zinc-500">The address NPM forwards to, same as the Forward Hostname/IP and Port in NPM.</p>
   </div>
   <div class="space-y-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
-    <Toggle bind:checked={requireApproval} label="Needs approval" description="New users wait until you approve them. Off = everyone who is signed in can open it." />
+    <Toggle bind:checked={requireApproval} label="Needs approval"
+      disabled={!canOpen && start.require_approval !== false}
+      description={!canOpen && start.require_approval !== false
+        ? 'Only admins can open a site to everyone who is signed in.'
+        : 'New users wait until you approve them. Off = everyone who is signed in can open it.'} />
     <Toggle bind:checked={requireEmail} label="Needs a verified email" description="Users must have a verified email address before they can open this site." />
   </div>
   {#if error}<p class="text-sm text-rose-400">{error}</p>{/if}

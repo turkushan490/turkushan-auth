@@ -69,7 +69,7 @@
 {#if adding}
   <div class="{card} mb-4 p-5">
     <h3 class="mb-4 font-semibold">New site</h3>
-    <SiteForm base={data.settings.base_domain} submitText="Add site" onsave={create} oncancel={() => (adding = false)} />
+    <SiteForm base={data.settings.base_domain} canOpen={data.me.admin} submitText="Add site" onsave={create} oncancel={() => (adding = false)} />
   </div>
 {/if}
 
@@ -87,7 +87,7 @@
     <li class="{card} p-5">
       {#if editing === site.id}
         <h3 class="mb-4 font-semibold">Edit {site.name}</h3>
-        <SiteForm initial={site} base={data.settings.base_domain} onsave={(v) => update(site, v)} oncancel={() => (editing = null)} />
+        <SiteForm initial={site} base={data.settings.base_domain} canOpen={data.me.admin} onsave={(v) => update(site, v)} oncancel={() => (editing = null)} />
       {:else}
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div class="min-w-0">
@@ -102,7 +102,7 @@
         </div>
 
         <div class="mt-4 grid gap-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4 sm:grid-cols-2">
-          <Toggle checked={site.require_approval} label="Needs approval" description={site.require_approval ? 'Only users you approve.' : 'Everyone who is signed in.'}
+          <Toggle checked={site.require_approval} label="Needs approval" disabled={!data.me.admin && site.require_approval} description={site.require_approval ? 'Only users you approve.' : 'Everyone who is signed in.'}
             onchange={(v) => flip(site, 'require_approval', v)} />
           <Toggle checked={site.require_email} label="Needs a verified email" description={site.require_email ? 'Verified email required.' : 'No email needed.'}
             onchange={(v) => flip(site, 'require_email', v)} />

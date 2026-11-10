@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"path"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -40,6 +41,17 @@ type Server struct {
 
 	oauth     map[string]*oauthProvider // "Continue with Discord/Google"
 	oauthHTTP *http.Client
+
+	bg sync.WaitGroup // work that outlives its request, like sending mail
+}
+
+// background runs f after the response, so slow work (mail) can't be timed by the caller.
+func (s *Server) background(f func()) {
+	s.bg.Add(1)
+	go func() {
+		defer s.bg.Done()
+		f()
+	}()
 }
 
 // New returns the portal's HTTP handler. dist is the built web app.

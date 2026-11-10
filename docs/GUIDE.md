@@ -144,7 +144,22 @@ location / {
 
   auth_request /turkushan-auth;
   auth_request_set $redirection_url $upstream_http_x_auth_location;
+  auth_request_set $auth_user $upstream_http_x_auth_user;
+  auth_request_set $auth_email $upstream_http_x_auth_email;
+  auth_request_set $auth_groups $upstream_http_x_auth_groups;
   error_page 401 403 =302 $redirection_url;
+
+  proxy_set_header Host $host;
+  proxy_set_header X-Forwarded-Scheme $scheme;
+  proxy_set_header X-Forwarded-Proto $scheme;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_http_version 1.1;
+  proxy_set_header Upgrade $http_upgrade;
+  proxy_set_header Connection $http_connection;
+  proxy_set_header Remote-User $auth_user;
+  proxy_set_header Remote-Email $auth_email;
+  proxy_set_header Remote-Groups $auth_groups;
 }
 
 location /turkushan-auth {
@@ -152,12 +167,16 @@ location /turkushan-auth {
   proxy_pass http://192.168.0.6:3010/api/auth/nginx;
   proxy_pass_request_body off;
   proxy_set_header content-length "";
-  proxy_set_header x-original-url $scheme://$http_host$request_uri;
+  proxy_set_header x-original-url $scheme://$host$request_uri;
   proxy_set_header x-original-method $request_method;
   proxy_set_header x-forwarded-for $proxy_add_x_forwarded_for;
   proxy_set_header x-real-ip $remote_addr;
 }
 ```
+
+The app behind the portal gets three headers it can trust (the visitor's own copies are replaced): **Remote-User** (username), **Remote-Email** (only when verified) and **Remote-Groups** (comma-separated group names). Apps that support "header login" or "trusted header SSO" can use them to sign the visitor in automatically.
+
+> **Updating from a version before 1.0.0?** Copy the NPM config again for every site and paste it over the old one. The old config used `$http_host`, which a visitor could change to trick the portal into checking a different site.
 
 **Test** in a private/incognito window: open `https://manga.example.com` → you land on the sign-in page → sign in → you're sent back to the site (or to "Waiting for approval" for a new user).
 

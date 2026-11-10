@@ -185,6 +185,26 @@ func (s *Store) ListMemberships(ctx context.Context) ([]Membership, error) {
 	return out, rows.Err()
 }
 
+// GroupNames lists the names of the user's groups, sorted, for the Remote-Groups header.
+func (s *Store) GroupNames(ctx context.Context, userID int64) ([]string, error) {
+	rows, err := s.DB.QueryContext(ctx, `
+SELECT g.name FROM groups g JOIN user_groups ug ON ug.group_id = g.id
+WHERE ug.user_id = ? ORDER BY g.name`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []string{}
+	for rows.Next() {
+		var n string
+		if err := rows.Scan(&n); err != nil {
+			return nil, err
+		}
+		out = append(out, n)
+	}
+	return out, rows.Err()
+}
+
 // AddMember puts a user in a group by hand. An existing rule-made membership becomes manual, so a later rule change keeps it.
 func (s *Store) AddMember(ctx context.Context, userID, groupID int64) error {
 	_, err := s.DB.ExecContext(ctx, `
@@ -209,6 +229,28 @@ func (r Rights) Has(perm string) bool { return r.Admin || r.Global[perm] }
 
 func (r Rights) CanApprove(siteID int64) bool {
 	return r.Has(PermApprove) || r.ApproveSites[siteID]
+}
+
+// Covers reports whether r includes every right in o, so a staff member can't
+// take over (reset, block, delete) someone who may do more than they can.
+func (r Rights) Covers(o Rights) bool {
+	if r.Admin {
+		return true
+	}
+	if o.Admin {
+		return false
+	}
+	for p, on := range o.Global {
+		if on && !r.Global[p] {
+			return false
+		}
+	}
+	for id, on := range o.ApproveSites {
+		if on && !r.CanApprove(id) {
+			return false
+		}
+	}
+	return true
 }
 
 // Staff reports whether the user may enter the admin panel at all.

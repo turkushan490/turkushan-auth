@@ -139,7 +139,8 @@ func (s *Server) handleSetEmail(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusTooManyRequests, "Too many email changes. Try again in an hour.")
 		return
 	}
-	if u.EmailVerified {
+	// Accounts that only sign in with Discord/Google have no password to ask for.
+	if u.EmailVerified && u.PasswordHash != "" {
 		if ok, err := auth.VerifyPassword(req.Password, u.PasswordHash); err != nil || !ok {
 			writeError(w, http.StatusUnauthorized, "Wrong password.")
 			return
@@ -346,21 +347,27 @@ func (s *Server) handleForgotPassword(w http.ResponseWriter, r *http.Request) {
 
 	token, err := s.store.CreateToken(ctx, u.ID, store.TokenResetPassword, u.Email, resetTTL)
 	if err != nil {
-		s.serverError(w, r, err)
+		s.log.Error("create reset token", "err", err)
+		writeJSON(w, http.StatusOK, done)
 		return
 	}
-	err = s.sendMail(ctx, u.Email, mailContent{
+	content := mailContent{
 		Title:  "Reset your password",
 		Intro:  fmt.Sprintf("Hi %s, someone (hopefully you) asked to reset your password for %s. Click the button to choose a new one.", u.Username, s.redirectBase),
 		Button: "Choose a new password",
 		Link:   s.portalURL("/reset", url.Values{"token": {token}}),
 		Footer: "The link works for 1 hour and only once. Didn't ask for this? Ignore this mail; your password stays the same.",
-	})
-	if err != nil {
-		s.log.Error("send reset mail", "err", err)
-	} else {
-		s.log.Info("password reset mail sent", "username", u.Username)
 	}
+	// Send in the background: waiting for the mail server would make existing
+	// accounts answer noticeably slower than unknown ones.
+	to, username := u.Email, u.Username
+	s.background(func() {
+		if err := s.sendMail(context.Background(), to, content); err != nil {
+			s.log.Error("send reset mail", "err", err)
+		} else {
+			s.log.Info("password reset mail sent", "username", username)
+		}
+	})
 	writeJSON(w, http.StatusOK, done)
 }
 
@@ -422,6 +429,10 @@ type mailSettingsInput struct {
 // It returns a message for the admin when something is invalid.
 func (s *Server) applyMailSettings(ctx context.Context, in mailSettingsInput) (string, error) {
 	set := func(key, v string) error { return s.store.SetSetting(ctx, key, v) }
+	old, err := s.mailConfig(ctx)
+	if err != nil {
+		return "", err
+	}
 	if in.Host != nil {
 		h := strings.TrimSpace(*in.Host)
 		if h != "" && !hostRe.MatchString(strings.ToLower(h)) && net.ParseIP(h) == nil {
@@ -444,9 +455,20 @@ func (s *Server) applyMailSettings(ctx context.Context, in mailSettingsInput) (s
 			return "", err
 		}
 	}
-	if in.Password != nil && *in.Password != "" {
+	newPassword := in.Password != nil && *in.Password != ""
+	if newPassword {
 		if err := set(store.SettingSMTPPassword, *in.Password); err != nil {
 			return "", err
+		}
+	} else if old.Password != "" {
+		// Never hand the saved password to a different server: a changed host or
+		// port without a new password clears it.
+		hostChanged := in.Host != nil && !strings.EqualFold(strings.TrimSpace(*in.Host), old.Host)
+		portChanged := in.Port != nil && *in.Port != old.Port
+		if hostChanged || portChanged {
+			if err := set(store.SettingSMTPPassword, ""); err != nil {
+				return "", err
+			}
 		}
 	}
 	if in.From != nil {

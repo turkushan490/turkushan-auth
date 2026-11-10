@@ -30,7 +30,8 @@ func Discord(ctx context.Context, webhook, title, description, link string) erro
 	if link != "" {
 		embed["url"] = link
 	}
-	body, _ := json.Marshal(map[string]any{"embeds": []any{embed}})
+	// No @everyone/@role pings from names that end up in the text.
+	body, _ := json.Marshal(map[string]any{"embeds": []any{embed}, "allowed_mentions": map[string]any{"parse": []string{}}})
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, webhook, bytes.NewReader(body))
 	if err != nil {

@@ -2,6 +2,9 @@ package server
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -137,13 +140,62 @@ type oauthState struct {
 	Provider string `json:"p"`
 	RD       string `json:"rd,omitempty"`
 	Link     bool   `json:"l,omitempty"` // connect to the signed-in account instead of signing in
+	Verifier string `json:"v"`           // PKCE code_verifier
+	Expires  int64  `json:"e"`
+}
+
+const oauthStateTTL = 10 * time.Minute
+
+// oauthCookieName uses the __Host- prefix on https: the browser then refuses
+// the cookie from any other subdomain, so a sibling app can't plant one.
+func (s *Server) oauthCookieName() string {
+	if s.secureCookies() {
+		return "__Host-" + oauthCookie
+	}
+	return oauthCookie
 }
 
 func (s *Server) setOAuthCookie(w http.ResponseWriter, value string, maxAge int) {
 	http.SetCookie(w, &http.Cookie{
-		Name: oauthCookie, Value: value, Path: "/api/oauth", MaxAge: maxAge,
+		Name: s.oauthCookieName(), Value: value, Path: "/", MaxAge: maxAge,
 		HttpOnly: true, Secure: s.secureCookies(), SameSite: http.SameSiteLaxMode,
 	})
+}
+
+func (s *Server) oauthMAC(payload string) string {
+	m := hmac.New(sha256.New, append([]byte("oauth-state:"), s.cfg.SessionSecret...))
+	m.Write([]byte(payload))
+	return base64.RawURLEncoding.EncodeToString(m.Sum(nil))
+}
+
+// encodeOAuthState signs the state, so only this portal can have made the cookie.
+func (s *Server) encodeOAuthState(st oauthState) string {
+	raw, _ := json.Marshal(st)
+	payload := base64.RawURLEncoding.EncodeToString(raw)
+	return payload + "." + s.oauthMAC(payload)
+}
+
+func (s *Server) decodeOAuthState(r *http.Request) (oauthState, bool) {
+	var st oauthState
+	c, err := r.Cookie(s.oauthCookieName())
+	if err != nil {
+		return st, false
+	}
+	payload, mac, ok := strings.Cut(c.Value, ".")
+	if !ok || !hmac.Equal([]byte(mac), []byte(s.oauthMAC(payload))) {
+		return st, false
+	}
+	raw, err := base64.RawURLEncoding.DecodeString(payload)
+	if err != nil || json.Unmarshal(raw, &st) != nil || st.Expires < time.Now().Unix() {
+		return oauthState{}, false
+	}
+	return st, true
+}
+
+// pkceChallenge is the S256 code_challenge for a verifier (RFC 7636).
+func pkceChallenge(verifier string) string {
+	sum := sha256.Sum256([]byte(verifier))
+	return base64.RawURLEncoding.EncodeToString(sum[:])
 }
 
 // handleOAuthStart sends the visitor to Discord/Google.
@@ -169,14 +221,23 @@ func (s *Server) handleOAuthStart(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
-	raw, _ := json.Marshal(oauthState{State: state, Provider: p.name, RD: r.URL.Query().Get("rd"), Link: link})
-	s.setOAuthCookie(w, base64.RawURLEncoding.EncodeToString(raw), 600)
+	verifier, err := store.NewToken() // 43 url-safe characters, the PKCE minimum
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	s.setOAuthCookie(w, s.encodeOAuthState(oauthState{
+		State: state, Provider: p.name, RD: r.URL.Query().Get("rd"), Link: link,
+		Verifier: verifier, Expires: time.Now().Add(oauthStateTTL).Unix(),
+	}), int(oauthStateTTL/time.Second))
 
 	q := url.Values{
-		"client_id":     {clientID},
-		"redirect_uri":  {s.oauthRedirectURI(p.name)},
-		"response_type": {"code"},
-		"state":         {state},
+		"client_id":             {clientID},
+		"redirect_uri":          {s.oauthRedirectURI(p.name)},
+		"response_type":         {"code"},
+		"state":                 {state},
+		"code_challenge":        {pkceChallenge(verifier)},
+		"code_challenge_method": {"S256"},
 	}
 	switch p.name {
 	case "google":
@@ -220,15 +281,11 @@ func (s *Server) handleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	w.Header().Set("Cache-Control", "no-store")
 
-	var st oauthState
-	if c, err := r.Cookie(oauthCookie); err == nil {
-		if raw, err := base64.RawURLEncoding.DecodeString(c.Value); err == nil {
-			json.Unmarshal(raw, &st)
-		}
-	}
+	st, valid := s.decodeOAuthState(r)
 	s.setOAuthCookie(w, "", -1)
 	// The state must match the one we sent from this browser, or someone else started this login.
-	if st.State == "" || st.Provider != p.name || r.URL.Query().Get("state") != st.State {
+	if !valid || st.State == "" || st.Provider != p.name ||
+		subtle.ConstantTimeCompare([]byte(r.URL.Query().Get("state")), []byte(st.State)) != 1 {
 		s.oauthFail(w, r, false, "state")
 		return
 	}
@@ -242,7 +299,7 @@ func (s *Server) handleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := s.oauthExchange(ctx, p, clientID, secret, r.URL.Query().Get("code"))
+	token, err := s.oauthExchange(ctx, p, clientID, secret, r.URL.Query().Get("code"), st.Verifier)
 	if err != nil {
 		s.log.Error("oauth token exchange", "provider", p.name, "err", err)
 		s.oauthFail(w, r, st.Link, "provider")
@@ -278,9 +335,22 @@ func (s *Server) handleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		}
 		userID = current.ID
 	default:
-		// New here. If their verified address belongs to an account, that's them.
+		// New here. If their verified address belongs to an account, that's them,
+		// except for admins and staff: whoever controls a Discord/Google account
+		// with that address shouldn't get the admin panel without the password.
+		// They connect it themselves from the account page instead.
 		if profile.Verified && profile.Email != "" {
 			if u, err := s.store.UserByVerifiedEmail(ctx, profile.Email); err == nil {
+				rights, err := s.store.UserRights(ctx, u)
+				if err != nil {
+					s.serverError(w, r, err)
+					return
+				}
+				if rights.Staff() {
+					s.log.Warn("oauth sign-in matched a staff account by email; not linked", "username", u.Username, "provider", p.name)
+					s.oauthFail(w, r, false, "link_first")
+					return
+				}
 				userID = u.ID
 			} else if !errors.Is(err, store.ErrNotFound) {
 				s.serverError(w, r, err)
@@ -302,6 +372,16 @@ func (s *Server) handleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Blocked accounts stop here, before anything about them is saved or synced.
+	u, err := s.store.UserByID(ctx, userID)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	if u.Status != "active" {
+		s.oauthFail(w, r, st.Link, "blocked")
+		return
+	}
 	if err := s.store.SaveIdentity(ctx, &store.Identity{
 		Provider: p.name, Subject: profile.Subject, UserID: userID,
 		Email: profile.Email, Display: profile.Display, Data: profile.Data,
@@ -313,15 +393,6 @@ func (s *Server) handleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 
 	if st.Link {
 		http.Redirect(w, r, "/?connected="+p.name, http.StatusFound)
-		return
-	}
-	u, err := s.store.UserByID(ctx, userID)
-	if err != nil {
-		s.serverError(w, r, err)
-		return
-	}
-	if u.Status != "active" {
-		s.oauthFail(w, r, false, "blocked")
 		return
 	}
 	ip := clientIP(r, s.cfg.TrustedProxies)
@@ -337,13 +408,14 @@ func (s *Server) handleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, s.safeRedirect(st.RD), http.StatusFound)
 }
 
-func (s *Server) oauthExchange(ctx context.Context, p *oauthProvider, clientID, secret, code string) (string, error) {
+func (s *Server) oauthExchange(ctx context.Context, p *oauthProvider, clientID, secret, code, verifier string) (string, error) {
 	form := url.Values{
 		"grant_type":    {"authorization_code"},
 		"code":          {code},
 		"redirect_uri":  {s.oauthRedirectURI(p.name)},
 		"client_id":     {clientID},
 		"client_secret": {secret},
+		"code_verifier": {verifier},
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, p.tokenURL, strings.NewReader(form.Encode()))
 	if err != nil {
@@ -584,11 +656,32 @@ func (s *Server) handleOAuthComplete(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusTooManyRequests, "Too many new accounts from your network. Try again later.")
 		return
 	}
+	if taken, err := s.store.UsernameTaken(ctx, username); err != nil {
+		s.serverError(w, r, err)
+		return
+	} else if taken {
+		writeError(w, http.StatusConflict, "That username is already taken.")
+		return
+	}
+	// Only one request can claim the sign-up: a double click makes one account.
+	if claimed, err := s.store.ClaimPending(ctx, req.P); err != nil {
+		s.serverError(w, r, err)
+		return
+	} else if !claimed {
+		writeError(w, http.StatusConflict, "This sign-up is already finished. Sign in from the sign-in page.")
+		return
+	}
+	restore := func() {
+		if err := s.store.RestorePending(ctx, req.P, p, pendingTTL); err != nil {
+			s.log.Error("restore pending sign-up", "err", err)
+		}
+	}
 
 	// Someone else may have verified this address in the meantime; then leave it off.
 	email := p.Email
 	if email != "" {
 		if taken, err := s.store.EmailInUse(ctx, email, 0); err != nil {
+			restore()
 			s.serverError(w, r, err)
 			return
 		} else if taken {
@@ -597,10 +690,12 @@ func (s *Server) handleOAuthComplete(w http.ResponseWriter, r *http.Request) {
 	}
 	id, err := s.store.RegisterUser(ctx, username, hash, email)
 	if errors.Is(err, store.ErrUsernameTaken) {
+		restore()
 		writeError(w, http.StatusConflict, "That username is already taken.")
 		return
 	}
 	if err != nil {
+		restore()
 		s.serverError(w, r, err)
 		return
 	}
@@ -615,9 +710,6 @@ func (s *Server) handleOAuthComplete(w http.ResponseWriter, r *http.Request) {
 	}); err != nil {
 		s.serverError(w, r, err)
 		return
-	}
-	if err := s.store.DeletePending(ctx, req.P); err != nil {
-		s.log.Error("delete pending sign-up", "err", err)
 	}
 	s.syncGroups(ctx, id)
 

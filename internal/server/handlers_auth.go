@@ -91,10 +91,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
-	if u.LockedUntil > time.Now().Unix() {
-		writeError(w, http.StatusLocked, "Too many wrong passwords. This account is locked for 15 minutes.")
-		return
-	}
+	locked := u.LockedUntil > time.Now().Unix()
 
 	ok := false
 	if u.PasswordHash == "" {
@@ -102,6 +99,17 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		auth.DummyVerify(req.Password)
 	} else if ok, err = auth.VerifyPassword(req.Password, u.PasswordHash); err != nil {
 		s.serverError(w, r, err)
+		return
+	}
+	// A locked account answers like a wrong password, unless the password is
+	// right: only the owner learns about the lock, and guessers can't use it to
+	// find out which usernames exist.
+	if locked {
+		if ok {
+			writeError(w, http.StatusLocked, "Too many wrong passwords. This account is locked for 15 minutes.")
+		} else {
+			writeError(w, http.StatusUnauthorized, msgBadLogin)
+		}
 		return
 	}
 	if !ok {

@@ -45,10 +45,15 @@ func newTestServerFull(t *testing.T) (*Server, http.Handler, *store.Store) {
 	appURL, _ := url.Parse("https://auth.example.com")
 	cfg := &config.Config{AppURL: appURL, CookieDomain: ".example.com", DataDir: t.TempDir()}
 	st := store.New(d)
-	srv, h, err := build(cfg, st, slog.New(slog.NewTextHandler(io.Discard, nil)), dist)
+	srv, inner, err := build(cfg, st, slog.New(slog.NewTextHandler(io.Discard, nil)), dist)
 	if err != nil {
 		t.Fatal(err)
 	}
+	// Wait for background work (mail) after each request, so tests see its result.
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		inner.ServeHTTP(w, r)
+		srv.bg.Wait()
+	})
 	return srv, h, st
 }
 
@@ -279,6 +284,13 @@ func TestLockout(t *testing.T) {
 	}
 	if code, _ := c.post("/api/login", map[string]string{"username": "bob", "password": "Secret!1"}); code != http.StatusLocked {
 		t.Fatalf("locked account accepted the right password: %d", code)
+	}
+	// A wrong password on a locked account looks exactly like one on an unknown
+	// account, so the lock can't be used to find out which usernames exist.
+	_, lockedOut := c.post("/api/login", map[string]string{"username": "bob", "password": "Nope!123"})
+	_, unknownOut := c.post("/api/login", map[string]string{"username": "ghost", "password": "Nope!123"})
+	if lockedOut["error"] != msgBadLogin || unknownOut["error"] != msgBadLogin {
+		t.Fatalf("locked vs unknown differ: %v / %v", lockedOut, unknownOut)
 	}
 
 	// Unknown users get the same answer as a wrong password.
