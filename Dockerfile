@@ -1,5 +1,5 @@
 # 1. Frontend (same output on every platform, so it is built once on the build machine)
-FROM --platform=$BUILDPLATFORM node:22-alpine AS web
+FROM --platform=$BUILDPLATFORM node:26-alpine AS web
 WORKDIR /web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
